@@ -143,3 +143,89 @@ class TestBlockSpec:
         """Test full_id with custom namespace."""
         spec = BlockSpec("mymod", "custom_block")
         assert spec.full_id == "mymod:custom_block"
+
+
+class TestBlockStates:
+    """Test block state parsing (Phase 2)."""
+
+    def test_parse_single_block_state(self) -> None:
+        """Test parsing block with single state."""
+        parser = CommandParser()
+        result = parser.parse("/setblock 0 64 0 minecraft:oak_stairs[facing=north]")
+
+        assert isinstance(result, SetblockCommand)
+        assert result.block.block_id == "oak_stairs"
+        assert result.block.states is not None
+        assert result.block.states["facing"] == "north"
+
+    def test_parse_multiple_block_states(self) -> None:
+        """Test parsing block with multiple states."""
+        parser = CommandParser()
+        result = parser.parse("/setblock 0 64 0 minecraft:oak_stairs[facing=north,half=top]")
+
+        assert isinstance(result, SetblockCommand)
+        assert result.block.states is not None
+        assert result.block.states["facing"] == "north"
+        assert result.block.states["half"] == "top"
+
+    def test_parse_block_state_with_boolean(self) -> None:
+        """Test parsing block state with boolean value."""
+        parser = CommandParser()
+        result = parser.parse("/setblock 0 64 0 minecraft:oak_stairs[waterlogged=true]")
+
+        assert isinstance(result, SetblockCommand)
+        assert result.block.states is not None
+        assert result.block.states["waterlogged"] is True
+
+    def test_parse_block_state_with_integer(self) -> None:
+        """Test parsing block state with integer value."""
+        parser = CommandParser()
+        result = parser.parse("/setblock 0 64 0 minecraft:repeater[delay=3]")
+
+        assert isinstance(result, SetblockCommand)
+        assert result.block.states is not None
+        assert result.block.states["delay"] == 3
+
+    def test_parse_door_with_states(self) -> None:
+        """Test parsing door with half and hinge states."""
+        parser = CommandParser()
+        result = parser.parse("/setblock 4 66 0 spruce_door[half=lower,hinge=left]")
+
+        assert isinstance(result, SetblockCommand)
+        assert result.block.namespace == "minecraft"
+        assert result.block.block_id == "spruce_door"
+        assert result.block.states is not None
+        assert result.block.states["half"] == "lower"
+        assert result.block.states["hinge"] == "left"
+
+    def test_parse_stairs_complex_states(self) -> None:
+        """Test parsing stairs with multiple states."""
+        parser = CommandParser()
+        result = parser.parse(
+            "/setblock 0 64 0 minecraft:spruce_stairs[facing=east,half=top,shape=straight]"
+        )
+
+        assert isinstance(result, SetblockCommand)
+        assert result.block.states is not None
+        assert result.block.states["facing"] == "east"
+        assert result.block.states["half"] == "top"
+        assert result.block.states["shape"] == "straight"
+
+    def test_parse_fill_with_block_states(self) -> None:
+        """Test parsing fill command with block states."""
+        parser = CommandParser()
+        result = parser.parse("/fill 0 64 0 10 70 10 minecraft:oak_stairs[facing=north]")
+
+        assert isinstance(result, FillCommand)
+        assert result.block.block_id == "oak_stairs"
+        assert result.block.states is not None
+        assert result.block.states["facing"] == "north"
+
+    def test_parse_block_without_states(self) -> None:
+        """Test that blocks without states still work."""
+        parser = CommandParser()
+        result = parser.parse("/setblock 0 64 0 minecraft:stone")
+
+        assert isinstance(result, SetblockCommand)
+        assert result.block.block_id == "stone"
+        assert result.block.states is None

@@ -1,5 +1,5 @@
-// Phase 1: Basic grammar for setblock and fill
-// No block states, no NBT, no relative coordinates yet
+// Phase 2: Added block states support
+// Block states syntax: block_id[key=value,key2=value2]
 
 ?start: setblock_cmd | fill_cmd
 
@@ -13,8 +13,15 @@ fill_cmd: "fill" position position block_spec
 position: coord coord coord
 coord: SIGNED_INT
 
-// Block specification: namespace:id or just id (implicit minecraft:)
-block_spec: NAMESPACED_ID
+// Block specification: namespace:id with optional block states
+block_spec: NAMESPACED_ID block_states?
+
+// Block states: [facing=north,half=top]
+block_states: "[" state_pair ("," state_pair)* "]"
+state_pair: STATE_KEY "=" state_value
+state_value: BOOLEAN | SIGNED_INT | WORD
+
+BOOLEAN: "true" | "false"
 
 // Terminal priorities: more specific patterns first
 SIGNED_INT: ["-"|"+"]? INT
@@ -23,6 +30,7 @@ NAMESPACED_ID: WORD ":" WORD      // namespace:id
              | WORD                // implicit minecraft:
 
 WORD: /[a-z][a-z0-9_\/]*/         // Must start with letter
+STATE_KEY: /[a-z][a-z0-9_]*/      // State property names
 
 %import common.INT
 %import common.WS
