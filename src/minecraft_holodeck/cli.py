@@ -6,6 +6,7 @@ import click
 
 from minecraft_holodeck.api import WorldEditor
 from minecraft_holodeck.exceptions import MCCommandError
+from minecraft_holodeck.world import create_flat_world, create_void_world
 
 
 @click.group()
@@ -138,6 +139,140 @@ def parse(command: str) -> None:
         click.echo(json.dumps(asdict(ast), indent=2))
     except MCCommandError as e:
         click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.argument("world_path", type=click.Path())
+@click.option(
+    "--size",
+    default="8,8",
+    help="Size in chunks (x,z). Each chunk is 16x16 blocks. Default: 8,8 (128x128 blocks)",
+)
+@click.option(
+    "--layers",
+    help='Layers as "block:thickness,block:thickness". Example: "bedrock:1,stone:10,dirt:3,grass_block:1"',
+)
+@click.option("--name", help="World name (defaults to folder name)")
+def create_flat(world_path: str, size: str, layers: str | None, name: str | None) -> None:
+    """Create a new flat world.
+
+    Creates a flat Minecraft world with customizable layers.
+
+    Examples:
+
+        # Create default flat world (8x8 chunks = 128x128 blocks)
+        mccommand create-flat ./my_world
+
+        # Create larger world
+        mccommand create-flat ./my_world --size 16,16
+
+        # Custom layers
+        mccommand create-flat ./my_world --layers "bedrock:1,stone:10,dirt:3,grass_block:1"
+
+        # With custom name
+        mccommand create-flat ./my_world --name "My Test World"
+    """
+    # Parse size
+    try:
+        size_parts = size.split(",")
+        if len(size_parts) != 2:
+            raise ValueError("Size must be x,z")
+        size_chunks = (int(size_parts[0]), int(size_parts[1]))
+    except ValueError as e:
+        click.echo(f"Error: Invalid size format: {e}", err=True)
+        sys.exit(1)
+
+    # Parse layers if provided
+    layer_list = None
+    if layers:
+        try:
+            layer_list = []
+            for layer_spec in layers.split(","):
+                block, thickness = layer_spec.split(":")
+                layer_list.append((block.strip(), int(thickness)))
+        except ValueError as e:
+            click.echo(f"Error: Invalid layers format: {e}", err=True)
+            sys.exit(1)
+
+    # Create world
+    try:
+        click.echo(f"Creating flat world at {world_path}...")
+        create_flat_world(
+            world_path,
+            size_chunks=size_chunks,
+            layers=layer_list,
+            name=name,
+        )
+        blocks_x = size_chunks[0] * 16
+        blocks_z = size_chunks[1] * 16
+        click.echo(f"✓ World created successfully ({blocks_x}x{blocks_z} blocks)")
+    except MCCommandError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.argument("world_path", type=click.Path())
+@click.option(
+    "--size",
+    default="4,4",
+    help="Size in chunks (x,z). Default: 4,4 (64x64 blocks)",
+)
+@click.option(
+    "--spawn-platform/--no-spawn-platform",
+    default=True,
+    help="Create a 3x3 stone spawn platform at y=64",
+)
+@click.option("--name", help="World name (defaults to folder name)")
+def create_void(
+    world_path: str, size: str, spawn_platform: bool, name: str | None
+) -> None:
+    """Create a void world (empty world).
+
+    Useful for testing or creative building in isolation.
+
+    Examples:
+
+        # Create void world with spawn platform
+        mccommand create-void ./void_world
+
+        # Create void world without spawn platform
+        mccommand create-void ./void_world --no-spawn-platform
+
+        # Larger void world
+        mccommand create-void ./void_world --size 8,8
+    """
+    # Parse size
+    try:
+        size_parts = size.split(",")
+        if len(size_parts) != 2:
+            raise ValueError("Size must be x,z")
+        size_chunks = (int(size_parts[0]), int(size_parts[1]))
+    except ValueError as e:
+        click.echo(f"Error: Invalid size format: {e}", err=True)
+        sys.exit(1)
+
+    # Create world
+    try:
+        click.echo(f"Creating void world at {world_path}...")
+        create_void_world(
+            world_path,
+            size_chunks=size_chunks,
+            spawn_platform=spawn_platform,
+            name=name,
+        )
+        blocks_x = size_chunks[0] * 16
+        blocks_z = size_chunks[1] * 16
+        click.echo(f"✓ Void world created successfully ({blocks_x}x{blocks_z} blocks)")
+    except MCCommandError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
         sys.exit(1)
 
 
