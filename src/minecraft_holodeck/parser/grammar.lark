@@ -1,0 +1,29 @@
+// Phase 1: Basic grammar for setblock and fill
+// No block states, no NBT, no relative coordinates yet
+
+?start: setblock_cmd | fill_cmd
+
+// Setblock command: /setblock x y z block
+setblock_cmd: "setblock" position block_spec
+
+// Fill command: /fill x1 y1 z1 x2 y2 z2 block
+fill_cmd: "fill" position position block_spec
+
+// Position: three absolute integer coordinates
+position: coord coord coord
+coord: SIGNED_INT
+
+// Block specification: namespace:id or just id (implicit minecraft:)
+block_spec: NAMESPACED_ID
+
+// Terminal priorities: more specific patterns first
+SIGNED_INT: ["-"|"+"]? INT
+
+NAMESPACED_ID: WORD ":" WORD      // namespace:id
+             | WORD                // implicit minecraft:
+
+WORD: /[a-z][a-z0-9_\/]*/         // Must start with letter
+
+%import common.INT
+%import common.WS
+%ignore WS
