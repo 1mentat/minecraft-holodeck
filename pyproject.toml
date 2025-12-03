@@ -1,0 +1,44 @@
+[project]
+name = "minecraft-holodeck"
+version = "0.1.0"
+description = "Modify Minecraft worlds with /setblock and /fill commands"
+readme = "README.md"
+authors = [
+    { name = "Claude", email = "noreply@anthropic.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "amulet-core>=1.9.0",
+    "amulet-nbt>=2.0.0",
+    "lark>=1.1.0",
+    "click>=8.1.0",
+    "typing-extensions>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+mccommand = "minecraft_holodeck.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.mypy]
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
