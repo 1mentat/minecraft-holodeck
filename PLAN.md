@@ -6,6 +6,31 @@ A Python library for modifying Minecraft Java Edition world files through `/setb
 
 ---
 
+## 🏡 Cabin-First Development Approach
+
+**Goal**: Build the minimal feature set needed to construct a complete woodsy cabin, then expand from there.
+
+### Target Build: Woodsy Cabin
+- **Size**: 9×7 base, ~6 blocks tall with peaked roof
+- **Features**: Stone foundation, spruce walls, glass windows, working door, stair roof, chimney
+- **Commands needed**: ~40 commands using setblock, fill, block states, and hollow mode
+
+### What This Unlocks (Phases 1-3, ~5 days):
+✅ Basic `/setblock` and `/fill` with absolute coordinates
+✅ Block states for stairs `[facing=east]`, doors `[half=lower]`, slabs `[type=top]`
+✅ Hollow fill mode for efficient wall building
+✅ Support for all cabin blocks: cobblestone, spruce planks/logs/stairs/slabs/doors, glass panes
+
+### Why Cabin-First?
+1. **Concrete milestone**: Can see real results quickly
+2. **Validates architecture**: Tests parser, world modification, and block states
+3. **User value**: Delivers a usable tool fast
+4. **Motivating**: Building something cool beats abstract features
+
+**After Phase 3 (Day 5), you can build the complete cabin!**
+
+---
+
 ## 1. Architecture Overview
 
 ### Core Design Principles
@@ -1089,9 +1114,16 @@ if __name__ == "__main__":
 
 ## 6. Implementation Phases
 
-### Phase 1: Basic /setblock (Week 1)
+> **🏡 CABIN-FIRST PRIORITY**: Phases reordered to support building the woodsy cabin as quickly as possible!
 
-**Goal**: Minimal viable setblock with absolute coordinates
+### Phase 1: Foundation - Basic Commands (Day 1-2)
+
+**Goal**: Get `/setblock` and `/fill` working with absolute coordinates (no block states yet)
+
+**Cabin commands unlocked**:
+- ✅ `/fill 0 64 0 9 64 7 cobblestone` (foundation)
+- ✅ `/fill 1 65 1 8 65 6 spruce_planks` (floor)
+- ✅ `/setblock 2 67 0 glass_pane` (basic windows)
 
 **Tasks**:
 1. Set up project structure with uv
@@ -1101,44 +1133,91 @@ if __name__ == "__main__":
 
 2. Implement minimal parser
    - Grammar for: `/setblock <x> <y> <z> <namespace:id>`
+   - Grammar for: `/fill <x1> <y1> <z1> <x2> <y2> <z2> <namespace:id>`
    - No block states, no NBT, no relative coords yet
-   - Just integers and block ID
+   - Just integers and block IDs
 
 3. Basic WorldModifier
    - Open world with amulet
    - Set single block
+   - Fill region (simple mode only)
    - Save world
 
 4. CLI with `execute` command
 
 5. Basic tests
-   - Parser tests
+   - Parser tests for setblock and fill
    - Integration test with test world
 
 **Deliverables**:
 - Can run: `mccommand execute ./world "/setblock 0 64 0 minecraft:stone"`
+- Can run: `mccommand execute ./world "/fill 0 0 0 10 10 10 minecraft:stone"`
 - Tests pass
 - Type checking clean
 
-### Phase 2: Block States (Week 2)
+**Why this matters**: Gets the basic engine running so we can place blocks!
 
-**Goal**: Support block states like `[facing=north,half=top]`
+---
+
+### Phase 2: Block States - Make It Pretty (Day 3-4)
+
+**Goal**: Support block states like `[facing=north,half=top]` for stairs, doors, slabs
+
+**Cabin commands unlocked**:
+- ✅ `/setblock 4 66 0 spruce_door[half=lower,hinge=left]` (front door!)
+- ✅ `/fill -1 70 -1 -1 70 8 spruce_stairs[facing=east]` (roof!)
+- ✅ `/fill 2 72 -1 7 72 8 spruce_slab[type=top]` (roof peak!)
 
 **Tasks**:
-1. Extend grammar for block states
+1. Extend grammar for block states: `block_id[key=value,key2=value2]`
 2. Add block state parsing to transformer
-3. BlockRegistry with validation
-4. Extract/download block data for 1.20.1
-5. Convert block states to Amulet properties
-6. Tests for various block states
+3. Basic BlockRegistry (can start with hardcoded common blocks)
+4. Convert block states to Amulet properties
+5. Tests for doors, stairs, slabs
 
 **Deliverables**:
 - Can use: `/setblock 0 64 0 minecraft:oak_stairs[facing=north,half=top]`
-- Validation errors for invalid states
+- Can use: `/setblock 0 64 0 minecraft:spruce_door[half=lower,hinge=left]`
+- Stairs face the right direction
+- Doors work properly
 
-### Phase 3: Relative Coordinates (Week 2)
+**Why this matters**: This unlocks the ENTIRE cabin build including the peaked roof!
 
-**Goal**: Support `~` relative coordinates
+---
+
+### Phase 3: Hollow Mode - Smart Building (Day 5)
+
+**Goal**: Implement `hollow` fill mode for efficient wall building
+
+**Cabin commands unlocked**:
+- ✅ `/fill 0 65 0 9 69 7 spruce_planks hollow` (walls in one command!)
+
+**Tasks**:
+1. Extend fill grammar to support mode parameter
+2. Implement `_fill_hollow()` method
+3. Optimize boundary detection
+4. Tests for hollow mode
+
+**Deliverables**:
+- Can use: `/fill 0 0 0 15 15 15 minecraft:glass hollow`
+- Interior is automatically air, only outer shell is filled
+- Performance: hollow fill of 10x10x10 in <1 second
+
+**Why this matters**: This single feature saves dozens of commands for building walls!
+
+---
+
+### 🎉 CABIN MILESTONE: At this point, you can build the complete woodsy cabin!
+
+---
+
+### Phase 4: Relative Coordinates (Day 6-7)
+
+**Goal**: Support `~` relative coordinates for flexible positioning
+
+**New capabilities**:
+- ✅ `/setblock ~5 ~-1 ~5 minecraft:stone` (build relative to player)
+- ✅ Reusable command templates
 
 **Tasks**:
 1. Extend grammar for `~` notation
@@ -1149,64 +1228,123 @@ if __name__ == "__main__":
 
 **Deliverables**:
 - Can use: `/setblock ~5 ~-1 ~5 minecraft:stone`
-- Origin configurable via CLI
+- Origin configurable via CLI: `--origin 100,64,200`
+- Mixed absolute and relative: `/fill ~-5 64 ~-5 ~5 70 ~5 minecraft:stone`
 
-### Phase 4: Basic /fill (Week 3)
+**Why this matters**: Makes commands portable - build anywhere without editing coordinates!
 
-**Goal**: Implement /fill with simple modes
+---
+
+### Phase 5: Advanced Fill Modes (Day 8)
+
+**Goal**: Outline, keep, replace modes for advanced building
+
+**New capabilities**:
+- ✅ `/fill 0 0 0 20 20 20 minecraft:air replace minecraft:dirt` (clear specific blocks)
+- ✅ `/fill 0 0 0 10 10 10 minecraft:stone outline` (frame structures)
+- ✅ `/fill 0 0 0 10 10 10 minecraft:grass_block keep` (don't overwrite existing)
 
 **Tasks**:
-1. Add fill grammar
-2. FillCommand AST
-3. WorldModifier.fill_region() with basic modes
-4. Optimize for large fills (batch operations)
-5. Tests for fill operations
+1. Implement `_fill_outline()` method
+2. Implement `_fill_replace()` with filter support
+3. Implement `keep` mode
+4. Tests for each mode
 
 **Deliverables**:
-- Can use: `/fill 0 0 0 10 10 10 minecraft:stone`
-- Modes: destroy, keep, replace (no filter)
-- Reasonable performance (10k blocks in <5 seconds)
+- All fill modes working: destroy, hollow, keep, outline, replace
+- Replace with filter: `/fill ... replace minecraft:dirt`
+- Proper mode validation
 
-### Phase 5: Advanced /fill Modes (Week 3)
+**Why this matters**: Professional building tools for terrain editing and modifications!
 
-**Goal**: Hollow, outline, replace with filter
+---
+
+### Phase 6: Advanced Block Registry (Day 9-10)
+
+**Goal**: Full block validation with comprehensive block data
+
+**New capabilities**:
+- ✅ Validate all block IDs and states
+- ✅ Helpful error messages with suggestions
+- ✅ Support for 1.20.1 blocks
 
 **Tasks**:
-1. Implement hollow mode
-2. Implement outline mode
-3. Implement replace filter
-4. Optimize boundary detection
-5. Tests for each mode
+1. Extract/download PrismarineJS block data for 1.20.1
+2. Full BlockRegistry implementation with validation
+3. Fuzzy matching for typos ("Did you mean minecraft:oak_stairs?")
+4. Validate state values against allowed values
+5. Tests for validation
 
 **Deliverables**:
-- All fill modes working
-- `/fill 0 0 0 15 15 15 minecraft:glass hollow`
-- `/fill 0 0 0 20 20 20 minecraft:air replace minecraft:dirt`
+- Validates all blocks: `minecraft:nonexistent` → error with suggestion
+- Validates states: `[facing=invalid]` → "Valid values: north, south, east, west"
+- Supports all 1.20.1 blocks
 
-### Phase 6: NBT & Tile Entities (Week 4)
+**Why this matters**: Catches errors before modifying worlds, prevents data corruption!
 
-**Goal**: Support chests, signs, and other tile entities
+---
+
+### Phase 7: NBT & Tile Entities (Day 11-12)
+
+**Goal**: Support chests, signs, and other tile entities with data
+
+**New capabilities**:
+- ✅ `/setblock 0 64 0 minecraft:chest{Items:[{Slot:0b,id:"minecraft:diamond",Count:64b}]}`
+- ✅ Signs with text, command blocks with commands
 
 **Tasks**:
-1. Integrate NBT parser (nbtlib or custom)
+1. Integrate NBT parser (nbtlib or custom SNBT parser)
 2. Parse NBT strings in block specs
 3. Tile entity detection and creation
 4. WorldModifier support for placing tile entities
 5. Tests with chests, signs, command blocks
 
 **Deliverables**:
-- Can create chests with items:
-  `/setblock 0 64 0 minecraft:chest{Items:[{Slot:0b,id:"minecraft:diamond",Count:64b}]}`
+- Can create chests with items
+- Can create signs with text
+- Can create command blocks with commands
 
-### Phase 7: Polish & Documentation (Week 4)
+**Why this matters**: Furnish interiors, add interactive elements!
+
+---
+
+### Phase 8: Polish & Documentation (Day 13-14)
+
+**Goal**: Production-ready with great UX
 
 **Tasks**:
 1. Comprehensive error messages
 2. CLI help text and examples
 3. README with installation and usage
-4. API documentation
+4. Cabin build tutorial in docs
 5. Performance benchmarks
 6. CI/CD setup (GitHub Actions)
+7. `--dry-run` mode to preview changes
+8. Progress bars for large fills
+
+**Deliverables**:
+- Professional README
+- Tutorial: "Build your first cabin"
+- GitHub Actions running tests
+- Performance: >10k blocks/second
+
+**Why this matters**: Makes the tool accessible and reliable for everyone!
+
+---
+
+## Updated Timeline (Cabin-First)
+
+- **Days 1-2**: Phase 1 - Basic commands
+- **Days 3-4**: Phase 2 - Block states
+- **Day 5**: Phase 3 - Hollow mode
+- **🎉 CABIN COMPLETE** (can build full cabin after day 5!)
+- **Days 6-7**: Phase 4 - Relative coordinates
+- **Day 8**: Phase 5 - Advanced fill modes
+- **Days 9-10**: Phase 6 - Block validation
+- **Days 11-12**: Phase 7 - NBT support
+- **Days 13-14**: Phase 8 - Polish
+
+**Total: ~2 weeks for full implementation, cabin buildable in 5 days!**
 
 ---
 
@@ -1579,12 +1717,19 @@ Full project successful when:
 
 ## Timeline Estimate
 
-- **Week 1**: Phases 1-2 (basic setblock, block states)
-- **Week 2**: Phase 3 (relative coords)
-- **Week 3**: Phases 4-5 (fill commands)
-- **Week 4**: Phases 6-7 (NBT, polish)
+**Cabin-First Development:**
 
-**Total: ~4 weeks for full implementation**
+- **Days 1-2**: Phase 1 (basic setblock + fill)
+- **Days 3-4**: Phase 2 (block states for stairs/doors)
+- **Day 5**: Phase 3 (hollow mode)
+- **🎉 CABIN MILESTONE** - Can build complete woodsy cabin!
+- **Days 6-7**: Phase 4 (relative coordinates)
+- **Day 8**: Phase 5 (advanced fill modes)
+- **Days 9-10**: Phase 6 (full block validation)
+- **Days 11-12**: Phase 7 (NBT & tile entities)
+- **Days 13-14**: Phase 8 (polish & documentation)
+
+**Total: ~2 weeks for full implementation, cabin buildable in 5 days!**
 
 ---
 
