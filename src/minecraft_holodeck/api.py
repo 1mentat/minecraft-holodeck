@@ -68,8 +68,8 @@ class WorldEditor:
             # Convert block
             block = blockspec_to_amulet(ast.block)
 
-            # Execute
-            count = self.modifier.fill_region(x1, y1, z1, x2, y2, z2, block)
+            # Execute with mode (Phase 3)
+            count = self.modifier.fill_region(x1, y1, z1, x2, y2, z2, block, ast.mode)
             return count
 
         else:

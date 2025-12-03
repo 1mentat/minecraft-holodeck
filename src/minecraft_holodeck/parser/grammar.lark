@@ -1,4 +1,5 @@
-// Phase 2: Added block states support
+// Phase 3: Added fill modes support
+// Fill modes: hollow, destroy, keep, outline, replace
 // Block states syntax: block_id[key=value,key2=value2]
 
 ?start: setblock_cmd | fill_cmd
@@ -6,8 +7,11 @@
 // Setblock command: /setblock x y z block
 setblock_cmd: "setblock" position block_spec
 
-// Fill command: /fill x1 y1 z1 x2 y2 z2 block
-fill_cmd: "fill" position position block_spec
+// Fill command: /fill x1 y1 z1 x2 y2 z2 block [mode]
+fill_cmd: "fill" position position block_spec FILL_MODE?
+
+// Fill modes terminal
+FILL_MODE: "destroy" | "hollow" | "keep" | "outline" | "replace"
 
 // Position: three absolute integer coordinates
 position: coord coord coord

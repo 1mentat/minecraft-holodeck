@@ -1,8 +1,9 @@
 """Lark transformer to convert parse tree to AST."""
 
-from typing import Any
+from typing import Any, Literal, cast
 
-from lark import Transformer, Token
+from lark import Token, Transformer
+
 from minecraft_holodeck.parser.ast import (
     BlockSpec,
     Coordinate,
@@ -51,7 +52,9 @@ class ASTTransformer(Transformer):  # type: ignore[type-arg]
         value = items[1]
         return (key, value)
 
-    def block_states(self, items: list[tuple[str, str | int | bool]]) -> dict[str, str | int | bool]:
+    def block_states(
+        self, items: list[tuple[str, str | int | bool]]
+    ) -> dict[str, str | int | bool]:
         """Transform block states into a dictionary."""
         return dict(items)
 
@@ -84,8 +87,14 @@ class ASTTransformer(Transformer):  # type: ignore[type-arg]
         return SetblockCommand(position, block)
 
     def fill_cmd(self, items: list[Any]) -> FillCommand:
-        """Transform fill command."""
+        """Transform fill command.
+
+        Phase 3: Added support for optional fill mode parameter.
+        """
         pos1 = items[0]
         pos2 = items[1]
         block = items[2]
-        return FillCommand(pos1, pos2, block)
+        # Mode is a Token if present, need to convert to string and cast to Literal
+        mode_str = str(items[3]) if len(items) > 3 else "replace"
+        mode = cast(Literal["replace", "destroy", "hollow", "keep", "outline"], mode_str)
+        return FillCommand(pos1, pos2, block, mode)
