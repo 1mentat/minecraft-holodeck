@@ -38,10 +38,11 @@ class Position:
 class BlockSpec:
     """Block specification.
 
-    Phase 1: Only namespace and block_id (no states or NBT yet).
+    Phase 2: Added block states support.
     """
     namespace: str  # "minecraft"
     block_id: str   # "stone"
+    states: dict[str, str | int | bool] | None = None  # {"facing": "north", "half": "top"}
 
     @property
     def full_id(self) -> str:
