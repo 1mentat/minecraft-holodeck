@@ -229,3 +229,69 @@ class TestBlockStates:
         assert isinstance(result, SetblockCommand)
         assert result.block.block_id == "stone"
         assert result.block.states is None
+
+
+class TestFillModes:
+    """Test fill mode parsing (Phase 3)."""
+
+    def test_parse_fill_default_mode(self) -> None:
+        """Test parsing fill without mode (defaults to replace)."""
+        parser = CommandParser()
+        result = parser.parse("/fill 0 64 0 10 70 10 minecraft:stone")
+
+        assert isinstance(result, FillCommand)
+        assert result.mode == "replace"
+
+    def test_parse_fill_hollow_mode(self) -> None:
+        """Test parsing fill with hollow mode."""
+        parser = CommandParser()
+        result = parser.parse("/fill 0 64 0 10 70 10 minecraft:stone hollow")
+
+        assert isinstance(result, FillCommand)
+        assert result.block.block_id == "stone"
+        assert result.mode == "hollow"
+
+    def test_parse_fill_destroy_mode(self) -> None:
+        """Test parsing fill with destroy mode."""
+        parser = CommandParser()
+        result = parser.parse("/fill 0 64 0 10 70 10 minecraft:glass destroy")
+
+        assert isinstance(result, FillCommand)
+        assert result.mode == "destroy"
+
+    def test_parse_fill_keep_mode(self) -> None:
+        """Test parsing fill with keep mode."""
+        parser = CommandParser()
+        result = parser.parse("/fill 0 64 0 10 70 10 minecraft:cobblestone keep")
+
+        assert isinstance(result, FillCommand)
+        assert result.mode == "keep"
+
+    def test_parse_fill_outline_mode(self) -> None:
+        """Test parsing fill with outline mode."""
+        parser = CommandParser()
+        result = parser.parse("/fill 0 64 0 10 70 10 minecraft:glass outline")
+
+        assert isinstance(result, FillCommand)
+        assert result.mode == "outline"
+
+    def test_parse_fill_replace_mode(self) -> None:
+        """Test parsing fill with explicit replace mode."""
+        parser = CommandParser()
+        result = parser.parse("/fill 0 64 0 10 70 10 minecraft:dirt replace")
+
+        assert isinstance(result, FillCommand)
+        assert result.mode == "replace"
+
+    def test_parse_fill_hollow_with_block_states(self) -> None:
+        """Test parsing hollow fill with block states."""
+        parser = CommandParser()
+        result = parser.parse(
+            "/fill 0 65 0 9 69 7 spruce_planks[waterlogged=false] hollow"
+        )
+
+        assert isinstance(result, FillCommand)
+        assert result.block.block_id == "spruce_planks"
+        assert result.block.states is not None
+        assert result.block.states["waterlogged"] is False
+        assert result.mode == "hollow"

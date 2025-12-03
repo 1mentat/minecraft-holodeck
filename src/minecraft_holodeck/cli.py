@@ -129,9 +129,10 @@ def parse(command: str) -> None:
 
         mccommand parse "/setblock 0 64 0 minecraft:stone"
     """
-    from minecraft_holodeck.parser import CommandParser
     import json
     from dataclasses import asdict
+
+    from minecraft_holodeck.parser import CommandParser
 
     parser = CommandParser()
     try:
@@ -151,7 +152,10 @@ def parse(command: str) -> None:
 )
 @click.option(
     "--layers",
-    help='Layers as "block:thickness,block:thickness". Example: "bedrock:1,stone:10,dirt:3,grass_block:1"',
+    help=(
+        'Layers as "block:thickness,block:thickness". '
+        'Example: "bedrock:1,stone:10,dirt:3,grass_block:1"'
+    ),
 )
 @click.option("--name", help="World name (defaults to folder name)")
 def create_flat(world_path: str, size: str, layers: str | None, name: str | None) -> None:

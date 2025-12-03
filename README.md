@@ -2,9 +2,14 @@
 
 A Python library for modifying Minecraft Java Edition world files through `/setblock` and `/fill` command interpretation.
 
-## Status: Phase 2 Complete 🎉
+## Status: Phase 3 Complete 🎉
 
-Block states are now fully supported! You can now use stairs, doors, and slabs with proper orientation:
+Fill modes are now fully supported! You can now build efficiently with hollow mode and other advanced fill modes:
+- `/fill 0 65 0 9 69 7 spruce_planks hollow` - Build walls in one command!
+- `/fill 0 64 0 10 70 10 stone keep` - Only fill air blocks
+- `/fill 0 64 0 10 70 10 glass outline` - Create wireframe boxes
+
+**Phase 2** block states are also complete:
 - `/setblock 0 64 0 minecraft:oak_stairs[facing=north,half=top]`
 - `/setblock 4 66 0 spruce_door[half=lower,hinge=left]`
 
@@ -66,22 +71,29 @@ with WorldEditor("/path/to/world") as editor:
     editor.save()
 ```
 
-## Implemented Features (Phase 1-2)
+## Implemented Features (Phase 1-3)
 
 ✅ **Basic Commands**
 - `/setblock x y z block_id` - Place single blocks
-- `/fill x1 y1 z1 x2 y2 z2 block_id` - Fill regions
+- `/fill x1 y1 z1 x2 y2 z2 block_id [mode]` - Fill regions with advanced modes
 
 ✅ **Block IDs**
 - Namespace support: `minecraft:stone` or just `stone`
 - Custom namespaces: `mymod:custom_block`
 
-✅ **Block States** (NEW!)
+✅ **Block States**
 - Full block state syntax: `block_id[key=value,key2=value2]`
 - String values: `[facing=north,half=top]`
 - Boolean values: `[waterlogged=true]`
 - Integer values: `[delay=3]`
 - Works with stairs, doors, slabs, and all state-based blocks
+
+✅ **Fill Modes** (NEW!)
+- `hollow` - Fill only the outer shell, interior becomes air (perfect for building walls!)
+- `destroy` - Replace all blocks (same as default)
+- `keep` - Only fill air blocks, preserve existing blocks
+- `outline` - Fill only the edges (wireframe)
+- `replace` - Default mode, replaces all blocks
 
 ✅ **Coordinates**
 - Absolute coordinates: `10 64 10`
@@ -89,7 +101,7 @@ with WorldEditor("/path/to/world") as editor:
 
 ✅ **Infrastructure**
 - Full type checking with mypy (strict mode)
-- Comprehensive test suite (26 tests, 100% passing)
+- Comprehensive test suite (33 tests, 100% passing)
 - CLI with multiple commands
 - Context manager support for safe resource handling
 
@@ -100,15 +112,16 @@ with WorldEditor("/path/to/world") as editor:
 - ✅ Enable stairs, doors, slabs with proper orientation
 - ✅ Unlock cabin building with peaked roofs!
 
-### Phase 3: Hollow Mode
-- `hollow` fill mode for efficient wall building
-- Complete cabin construction in single commands
+### ✅ Phase 3: Fill Modes (COMPLETE)
+- ✅ `hollow` fill mode for efficient wall building
+- ✅ `keep`, `outline`, `destroy`, `replace` modes
+- ✅ Complete cabin construction in single commands
 
 ### Phase 4+
 - Relative coordinates (`~5 ~-1 ~5`)
-- Advanced fill modes (outline, keep, replace)
 - NBT data for chests, signs, command blocks
 - Full block validation with helpful error messages
+- Replace mode with block filters
 
 ### Future Features
 - **Programmatic world creation**: Create flat/void worlds from scratch without Minecraft

@@ -65,12 +65,12 @@ class SetblockCommand:
 class FillCommand:
     """Parsed /fill command.
 
-    Phase 1: No mode parameter yet (always replace).
+    Phase 3: Added support for fill modes (hollow, destroy, keep, outline, replace).
     """
     pos1: Position
     pos2: Position
     block: BlockSpec
-    mode: Literal["replace"] = "replace"
+    mode: Literal["replace", "destroy", "hollow", "keep", "outline"] = "replace"
 
 
 CommandAST = SetblockCommand | FillCommand
