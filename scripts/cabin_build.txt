@@ -1,0 +1,105 @@
+# 🏡 Woodsy Cabin Build Commands
+# Base point: X=0, Y=64, Z=0
+# Size: 9×7 base, ~6 blocks tall (plus roof)
+# Style: Rustic spruce cabin with stone foundation
+
+# Step 1: Clear the Build Area
+/fill 0 64 0 10 72 8 air
+
+# Step 2: Foundation (Cobblestone)
+/fill 0 64 0 9 64 7 cobblestone
+
+# Step 3: Floor (Spruce Planks)
+/fill 1 65 1 8 65 6 spruce_planks
+
+# Step 4: Walls — Build each wall separately
+# Front wall (Z=0)
+/fill 0 65 0 9 69 0 spruce_planks
+# Back wall (Z=7)
+/fill 0 65 7 9 69 7 spruce_planks
+# Left wall (X=0)
+/fill 0 65 0 0 69 7 spruce_planks
+# Right wall (X=9)
+/fill 9 65 0 9 69 7 spruce_planks
+
+# Step 5: Corner Log Pillars
+/fill 0 65 0 0 69 0 spruce_log
+/fill 9 65 0 9 69 0 spruce_log
+/fill 0 65 7 0 69 7 spruce_log
+/fill 9 65 7 9 69 7 spruce_log
+
+# Step 6: Clear Interior
+/fill 1 66 1 8 68 6 air
+
+# Step 7: Windows (Glass Panes)
+# Front windows (either side of door)
+/setblock 2 67 0 glass_pane
+/setblock 7 67 0 glass_pane
+
+# Side windows (left side)
+/fill 0 67 2 0 67 3 glass_pane
+/fill 0 67 4 0 67 5 glass_pane
+
+# Side windows (right side)
+/fill 9 67 2 9 67 3 glass_pane
+/fill 9 67 4 9 67 5 glass_pane
+
+# Back window
+/fill 4 67 7 5 67 7 glass_pane
+
+# Step 8: Front Door
+/setblock 4 66 0 air
+/setblock 5 66 0 air
+/setblock 4 67 0 air
+/setblock 5 67 0 air
+/setblock 4 66 0 spruce_door[half=lower,hinge=left]
+/setblock 4 67 0 spruce_door[half=upper,hinge=left]
+
+# Step 9: Peaked Roof (Spruce Stairs + Slabs)
+# First roof layer (stairs)
+/fill -1 70 -1 -1 70 8 spruce_stairs[facing=east]
+/fill 10 70 -1 10 70 8 spruce_stairs[facing=west]
+
+# Second roof layer
+/fill 0 71 -1 0 71 8 spruce_stairs[facing=east]
+/fill 9 71 -1 9 71 8 spruce_stairs[facing=west]
+
+# Third roof layer
+/fill 1 72 -1 1 72 8 spruce_stairs[facing=east]
+/fill 8 72 -1 8 72 8 spruce_stairs[facing=west]
+
+# Roof peak (slabs)
+/fill 2 72 -1 7 72 8 spruce_slab[type=top]
+/fill 2 73 -1 7 73 8 spruce_slab[type=bottom]
+
+# Step 10: Stone Chimney
+/fill 8 65 5 8 75 6 cobblestone
+/fill 8 66 5 8 73 6 air
+/setblock 8 66 5 campfire
+
+# Step 11: Decorative Touches
+# Log trim along the base
+/fill 1 65 0 8 65 0 stripped_spruce_log[axis=x]
+
+# Flower pots by the door
+/setblock 3 65 -1 potted_fern
+/setblock 6 65 -1 potted_spruce_sapling
+
+# Lanterns
+/setblock 4 68 -1 lantern[hanging=false]
+
+# Optional Enhancements
+# Cozy interior lighting
+/fill 2 68 2 7 68 5 lantern[hanging=true]
+
+# Leaf bushes outside
+/setblock -1 65 3 oak_leaves[persistent=true]
+
+# Path to door
+/fill 4 64 -3 5 64 -1 gravel
+
+# Crafting table
+/setblock 2 66 5 crafting_table
+
+# Bed
+/setblock 7 66 5 red_bed[facing=west,part=head]
