@@ -25,7 +25,7 @@ class WorldEditor:
 
         Args:
             world_path: Path to Minecraft world folder
-            origin: Origin point for relative coordinates (Phase 1: unused)
+            origin: Origin point for relative coordinates (Phase 5: now supported)
         """
         self.world_path = Path(world_path)
         self.origin = origin
