@@ -25,23 +25,7 @@ This directory contains scripts to build a cozy woodland cabin in Minecraft usin
 
 ## Prerequisites
 
-### 1. Create a Flat World
-
-You need an existing Minecraft Java Edition world. Create one using:
-
-**In Minecraft:**
-1. Launch Minecraft Java Edition
-2. Click "Singleplayer" → "Create New World"
-3. Click "More World Options"
-4. Set "World Type" to **Flat**
-5. Create the world and close Minecraft
-
-Your world will be saved in:
-- **Windows:** `%APPDATA%\.minecraft\saves\<WorldName>`
-- **macOS:** `~/Library/Application Support/minecraft/saves/<WorldName>`
-- **Linux:** `~/.minecraft/saves/<WorldName>`
-
-### 2. Install minecraft-holodeck
+### Install minecraft-holodeck
 
 ```bash
 cd /path/to/minecraft-holodeck
@@ -50,15 +34,35 @@ uv sync --all-extras
 
 ## Usage
 
-### Option 1: Batch Command File (Recommended)
+### Step 1: Create a Flat World
+
+Create a new flat world programmatically:
+
+```bash
+# Create a flat world (8x8 chunks = 128x128 blocks)
+mccommand create-flat ./cabin_world --size 8,8
+
+# Or create a larger world
+mccommand create-flat ./cabin_world --size 16,16
+```
+
+Your world will be created in the current directory at `./cabin_world`.
+
+Alternatively, you can create a world in Minecraft:
+1. Launch Minecraft Java Edition → Create New World → World Type: Flat
+2. World will be saved in `~/.minecraft/saves/<WorldName>`
+
+### Step 2: Build the Cabin
+
+#### Option 1: Batch Command File (Recommended)
 
 Use the CLI batch command to execute all commands from the text file:
 
 ```bash
-mccommand batch /path/to/your/world scripts/cabin_build.txt
+mccommand batch ./cabin_world scripts/cabin_build.txt
 ```
 
-**Example:**
+**Using an existing Minecraft world:**
 ```bash
 # macOS/Linux
 mccommand batch ~/.minecraft/saves/MyFlatWorld scripts/cabin_build.txt
@@ -67,15 +71,15 @@ mccommand batch ~/.minecraft/saves/MyFlatWorld scripts/cabin_build.txt
 mccommand batch %APPDATA%\.minecraft\saves\MyFlatWorld scripts/cabin_build.txt
 ```
 
-### Option 2: Python Script
+#### Option 2: Python Script
 
 Run the Python script directly:
 
 ```bash
-python scripts/cabin_build.py /path/to/your/world
+python scripts/cabin_build.py ./cabin_world
 ```
 
-**Example:**
+**Using an existing Minecraft world:**
 ```bash
 # macOS/Linux
 python scripts/cabin_build.py ~/.minecraft/saves/MyFlatWorld

@@ -24,16 +24,27 @@ cd minecraft-holodeck
 uv sync --all-extras
 ```
 
-## Prerequisites
+## Creating Worlds
 
-You'll need an existing Minecraft Java Edition world to modify. Create one using:
+You can create new Minecraft worlds programmatically or use existing ones:
+
+### Create New Worlds
+
+```bash
+# Create a flat world
+mccommand create-flat ./my_world --size 16,16
+
+# Create a void world with spawn platform
+mccommand create-void ./void_world --spawn-platform
+
+# Custom flat world with specific layers
+mccommand create-flat ./custom --layers "bedrock:1,stone:10,dirt:3,grass_block:1"
+```
+
+### Or Use Existing Worlds
 
 1. **Minecraft Java Edition**: Launch Minecraft → Create New World
-   - For flat worlds: More World Options → World Type: Flat
-   - For void worlds: Use the Void superflat preset
 2. **Amulet Editor**: [https://www.amuletmc.com/](https://www.amuletmc.com/)
-
-> **Note**: Programmatic world creation from scratch is planned for a future release. Currently, minecraft-holodeck modifies existing worlds.
 
 ## Quick Start
 
@@ -62,7 +73,23 @@ mccommand parse "/setblock 10 64 10 minecraft:diamond_block"
 ### Python API
 
 ```python
-from minecraft_holodeck import WorldEditor
+from minecraft_holodeck import WorldEditor, create_flat_world, create_void_world
+
+# Create a new flat world
+create_flat_world(
+    "./my_world",
+    size_chunks=(16, 16),
+    layers=[("bedrock", 1), ("stone", 5), ("dirt", 3), ("grass_block", 1)],
+    name="My Flat World"
+)
+
+# Create a void world with spawn platform
+create_void_world(
+    "./void_world",
+    size_chunks=(8, 8),
+    spawn_platform=True,
+    name="The Void"
+)
 
 # Execute commands on a world
 with WorldEditor("/path/to/world") as editor:
@@ -117,14 +144,17 @@ with WorldEditor("/path/to/world") as editor:
 - ✅ `keep`, `outline`, `destroy`, `replace` modes
 - ✅ Complete cabin construction in single commands
 
-### Phase 4+
+### ✅ Phase 4: World Creation (COMPLETE)
+- ✅ Create flat worlds programmatically with custom layers
+- ✅ Create void worlds with optional spawn platforms
+- ✅ CLI commands for world creation
+- ✅ Python API for world creation
+
+### Phase 5+
 - Relative coordinates (`~5 ~-1 ~5`)
 - NBT data for chests, signs, command blocks
 - Full block validation with helpful error messages
 - Replace mode with block filters
-
-### Future Features
-- **Programmatic world creation**: Create flat/void worlds from scratch without Minecraft
 - Template-based world generation
 - Advanced world manipulation (clone, copy regions)
 
