@@ -1,10 +1,45 @@
 """Convert absolute coordinate scripts to relative coordinates."""
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TextIO
 
 from minecraft_holodeck.parser import CommandParser, FillCommand, SetblockCommand
 from minecraft_holodeck.parser.ast import Coordinate, Position
+
+
+@dataclass
+class BoundingBox:
+    """Bounding box of a structure."""
+
+    min_x: int
+    min_y: int
+    min_z: int
+    max_x: int
+    max_y: int
+    max_z: int
+
+    @property
+    def width(self) -> int:
+        """Width in X dimension (inclusive)."""
+        return self.max_x - self.min_x + 1
+
+    @property
+    def height(self) -> int:
+        """Height in Y dimension (inclusive)."""
+        return self.max_y - self.min_y + 1
+
+    @property
+    def depth(self) -> int:
+        """Depth in Z dimension (inclusive)."""
+        return self.max_z - self.min_z + 1
+
+    def __str__(self) -> str:
+        """Human-readable string representation."""
+        return (
+            f"Bounds: ({self.min_x},{self.min_y},{self.min_z}) to ({self.max_x},{self.max_y},{self.max_z})\n"
+            f"Size: {self.width}×{self.height}×{self.depth} (width×height×depth)"
+        )
 
 
 class ScriptConverter:
@@ -13,13 +48,76 @@ class ScriptConverter:
     def __init__(self):
         self.parser = CommandParser()
 
+    def analyze_script(self, script_path: Path | str) -> BoundingBox:
+        """Analyze a script to determine its bounding box.
+
+        Args:
+            script_path: Path to script file
+
+        Returns:
+            BoundingBox containing structure extents
+        """
+        script_path = Path(script_path)
+
+        min_x = float("inf")
+        min_y = float("inf")
+        min_z = float("inf")
+        max_x = float("-inf")
+        max_y = float("-inf")
+        max_z = float("-inf")
+
+        with open(script_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+
+                try:
+                    ast = self.parser.parse(line)
+
+                    if isinstance(ast, SetblockCommand):
+                        positions = [ast.position]
+                    elif isinstance(ast, FillCommand):
+                        positions = [ast.pos1, ast.pos2]
+                    else:
+                        continue
+
+                    for pos in positions:
+                        # Only consider absolute coordinates
+                        if not pos.x.relative:
+                            min_x = min(min_x, pos.x.value)
+                            max_x = max(max_x, pos.x.value)
+                        if not pos.y.relative:
+                            min_y = min(min_y, pos.y.value)
+                            max_y = max(max_y, pos.y.value)
+                        if not pos.z.relative:
+                            min_z = min(min_z, pos.z.value)
+                            max_z = max(max_z, pos.z.value)
+
+                except Exception:
+                    # Skip unparseable lines
+                    continue
+
+        # If no coordinates found, return default
+        if min_x == float("inf"):
+            return BoundingBox(0, 0, 0, 0, 0, 0)
+
+        return BoundingBox(
+            int(min_x),
+            int(min_y),
+            int(min_z),
+            int(max_x),
+            int(max_y),
+            int(max_z),
+        )
+
     def convert_file(
         self,
         input_path: Path | str,
         output_path: Path | str,
         base_point: tuple[int, int, int] | None = None,
         auto_detect: bool = True,
-    ) -> tuple[int, int, int]:
+    ) -> tuple[tuple[int, int, int], BoundingBox]:
         """Convert a script file from absolute to relative coordinates.
 
         Args:
@@ -30,7 +128,7 @@ class ScriptConverter:
             auto_detect: If True, automatically detect base point from min coords
 
         Returns:
-            The base point used (x, y, z)
+            Tuple of (base_point, bounding_box)
         """
         input_path = Path(input_path)
         output_path = Path(output_path)
@@ -56,11 +154,26 @@ class ScriptConverter:
         elif base_point is None:
             base_point = (0, 0, 0)
 
+        # Compute bounding box from original script
+        bbox = self.analyze_script(input_path)
+
         # Convert and write
         with open(output_path, "w") as f:
             f.write(f"# Converted to relative coordinates\n")
             f.write(f"# Base point: {base_point[0]}, {base_point[1]}, {base_point[2]}\n")
-            f.write(f"# Use with: --origin {base_point[0]},{base_point[1]},{base_point[2]}\n")
+            f.write(f"#\n")
+            f.write(f"# Structure extents:\n")
+            f.write(f"#   {bbox}\n")
+            f.write(f"#\n")
+            f.write(f"# For base-to-base placement (e.g., 10 blocks east):\n")
+            f.write(f"#   Cabin 1: --origin {base_point[0]},{base_point[1]},{base_point[2]}\n")
+            f.write(
+                f"#   Cabin 2: --origin {base_point[0] + bbox.width + 10},{base_point[1]},{base_point[2]} "
+                f"(width={bbox.width}, gap=10)\n"
+            )
+            f.write(f"#\n")
+            f.write(f"# Basic usage:\n")
+            f.write(f"#   mccommand batch world {output_path.name} --origin {base_point[0]},{base_point[1]},{base_point[2]}\n")
             f.write("\n")
 
             for line_num, original_line, ast in commands:
@@ -72,7 +185,7 @@ class ScriptConverter:
                     converted = self._convert_command(ast, base_point)
                     f.write(converted + "\n")
 
-        return base_point
+        return base_point, bbox
 
     def _detect_base_point(
         self, commands: list[tuple[int, str, SetblockCommand | FillCommand | None]]

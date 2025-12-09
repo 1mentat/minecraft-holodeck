@@ -282,6 +282,55 @@ def create_void(
 
 
 @main.command()
+@click.argument("script_file", type=click.Path(exists=True))
+def analyze(script_file: str) -> None:
+    """Analyze a build script to determine structure extents.
+
+    Shows bounding box, dimensions, and placement calculations for
+    base-to-base positioning of multiple structures.
+
+    Examples:
+
+        mccommand analyze scripts/cabin_build.txt
+    """
+    from pathlib import Path
+
+    script_path = Path(script_file)
+
+    try:
+        converter = ScriptConverter()
+        click.echo(f"Analyzing {script_path}...")
+        click.echo()
+
+        bbox = converter.analyze_script(script_path)
+
+        click.echo("Structure Analysis:")
+        click.echo(f"  {bbox}")
+        click.echo()
+        click.echo("Base-to-base placement calculations:")
+        click.echo(f"  Structure 1 origin: (0, {bbox.min_y}, 0)")
+        click.echo(
+            f"  Structure 2 origin (10 blocks east): ({bbox.width + 10}, {bbox.min_y}, 0)"
+        )
+        click.echo(
+            f"  Structure 3 origin (10 blocks north): (0, {bbox.min_y}, {bbox.depth + 10})"
+        )
+        click.echo()
+        click.echo("Tip: Use these calculations with --origin flag:")
+        click.echo(f"  mccommand batch world {script_path.name} --origin 0,{bbox.min_y},0")
+        click.echo(
+            f"  mccommand batch world {script_path.name} --origin {bbox.width + 10},{bbox.min_y},0"
+        )
+
+    except MCCommandError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
 @click.argument("input_file", type=click.Path(exists=True))
 @click.option("-o", "--output", help="Output file (default: adds _relative suffix)")
 @click.option(
@@ -342,7 +391,7 @@ def convert_to_relative(
         converter = ScriptConverter()
         click.echo(f"Converting {input_path} to relative coordinates...")
 
-        detected_base = converter.convert_file(
+        detected_base, bbox = converter.convert_file(
             input_path,
             output_path,
             base_point=base_point,
@@ -351,10 +400,12 @@ def convert_to_relative(
 
         click.echo(f"✓ Converted successfully")
         click.echo(f"  Base point: {detected_base[0]}, {detected_base[1]}, {detected_base[2]}")
+        click.echo(f"  {bbox}")
         click.echo(f"  Output: {output_path}")
-        click.echo(f"\nUsage:")
+        click.echo(f"\nFor base-to-base placement:")
+        click.echo(f"  Structure 1: --origin {detected_base[0]},{detected_base[1]},{detected_base[2]}")
         click.echo(
-            f"  mccommand batch world {output_path} --origin {detected_base[0]},{detected_base[1]},{detected_base[2]}"
+            f"  Structure 2 (10 blocks east): --origin {detected_base[0] + bbox.width + 10},{detected_base[1]},{detected_base[2]}"
         )
 
     except MCCommandError as e:
