@@ -2,17 +2,19 @@
 
 A Python library for modifying Minecraft Java Edition world files through `/setblock` and `/fill` command interpretation.
 
-## Status: Phase 5 Complete 🎉
+## Status: Relative Coordinates Implemented! 🎉
 
-Relative coordinates are now fully supported! Build anywhere without editing coordinates:
-- `/setblock ~5 ~-1 ~5 minecraft:stone` - Place blocks relative to origin
-- `/fill ~ ~ ~ ~9 ~5 ~7 spruce_planks hollow` - Build structures from current position
-- `/setblock 10 ~5 -20 minecraft:glass` - Mix absolute and relative coordinates
+**NEW:** Relative coordinates are now supported! Build position-independent structures and reuse them anywhere:
+- `/setblock ~5 ~-1 ~10 minecraft:stone` - Relative to origin point
+- `/fill ~ ~ ~ ~10 ~10 ~10 minecraft:glass hollow` - Build from origin
+- Convert existing scripts: `mccommand convert-to-relative cabin_build.txt`
+- Place same structure at different locations using `--origin` flag
+- Structure analysis: `mccommand analyze cabin_build.txt` - Get extents for base-to-base placement
 
-**Previous features:**
-- Fill modes: `/fill 0 65 0 9 69 7 spruce_planks hollow` - Build walls efficiently!
-- Block states: `/setblock 0 64 0 minecraft:oak_stairs[facing=north,half=top]`
-- World creation: Create flat and void worlds programmatically
+**Previous features also complete:**
+- Fill modes (`hollow`, `keep`, `outline`, etc.)
+- Block states (`[facing=north,half=top]`)
+- World creation (flat and void worlds)
 
 ## Installation
 
@@ -106,13 +108,87 @@ with WorldEditor("/path/to/world") as editor:
 
 # Use relative coordinates with custom origin
 with WorldEditor("/path/to/world", origin=(100, 64, 200)) as editor:
-    # Places block at (105, 63, 205)
-    editor.execute("/setblock ~5 ~-1 ~5 minecraft:stone")
-    # Builds a 10x6x8 structure starting from origin
-    editor.execute("/fill ~ ~ ~ ~9 ~5 ~7 spruce_planks hollow")
+    editor.execute("/setblock ~ ~ ~ minecraft:diamond_block")  # Places at (100, 64, 200)
+    editor.execute("/setblock ~5 ~0 ~10 minecraft:gold_block")  # Places at (105, 64, 210)
     editor.save()
 ```
 
+## Relative Coordinates - Build Reusable Structures!
+
+Relative coordinates make your build scripts position-independent, so you can place the same structure at multiple locations.
+
+### Using Relative Coordinates
+
+Relative coordinates use the `~` symbol and are offset from an origin point:
+
+```bash
+# ~ alone means ~0 (exactly at origin)
+mccommand execute ./world "/setblock ~ ~ ~ minecraft:stone" --origin 100,64,200
+
+# ~5 means 5 blocks from origin
+mccommand execute ./world "/setblock ~5 ~0 ~10 minecraft:stone" --origin 100,64,200
+# Places block at (105, 64, 210)
+
+# Negative offsets work too
+mccommand execute ./world "/setblock ~-3 ~5 ~-2 minecraft:glass" --origin 50,64,50
+# Places block at (47, 69, 48)
+
+# Mix absolute and relative coordinates
+mccommand execute ./world "/setblock 100 ~5 200 minecraft:torch"
+```
+
+### Converting Existing Scripts
+
+Convert absolute coordinate scripts to relative coordinates:
+
+```bash
+# Auto-detect base point from minimum coordinates
+mccommand convert-to-relative scripts/cabin_build.txt
+
+# Specify custom base point
+mccommand convert-to-relative scripts/castle.txt --base 0,64,0
+
+# Custom output filename
+mccommand convert-to-relative scripts/house.txt -o scripts/house_relative.txt
+```
+
+This creates a new script with relative coordinates that you can reuse anywhere!
+
+### Building Multiple Structures
+
+Once converted to relative coordinates, place the same structure at different locations:
+
+```bash
+# Place first cabin at origin
+mccommand batch ./world cabin_relative.txt --origin 0,64,0
+
+# Place second cabin 20 blocks east
+mccommand batch ./world cabin_relative.txt --origin 20,64,0
+
+# Place third cabin 40 blocks east
+mccommand batch ./world cabin_relative.txt --origin 40,64,0
+
+# Build an entire village from one script!
+```
+
+### Real-World Example
+
+```bash
+# 1. Convert the cabin script to relative coordinates
+mccommand convert-to-relative scripts/cabin_build.txt
+# Output: scripts/cabin_build_relative.txt
+
+# 2. Build a village with 5 cabins
+mccommand batch ./world scripts/cabin_build_relative.txt --origin -1,64,-3
+mccommand batch ./world scripts/cabin_build_relative.txt --origin 19,64,-3
+mccommand batch ./world scripts/cabin_build_relative.txt --origin 39,64,-3
+mccommand batch ./world scripts/cabin_build_relative.txt --origin -1,64,12
+mccommand batch ./world scripts/cabin_build_relative.txt --origin 19,64,12
+
+# Same cabin, 5 different locations - that's the power of relative coordinates!
+```
+
+>>>>>>> f33b9f0 (Implement relative coordinate support and script converter)
 ## Implemented Features (Phase 1-5)
 
 ✅ **Basic Commands**
@@ -140,16 +216,33 @@ with WorldEditor("/path/to/world", origin=(100, 64, 200)) as editor:
 ✅ **Coordinates**
 - Absolute coordinates: `10 64 10`
 - Negative coordinates: `-10 64 -20`
-- Relative coordinates: `~5 ~-1 ~5` - Offset from origin
-- Mixed coordinates: `10 ~5 -20` - Combine absolute and relative
+- **Relative coordinates:** `~5 ~-1 ~10` - Offset from origin point
+- **Mixed coordinates:** `10 ~5 -20` - Mix absolute and relative
+
+✅ **Relative Coordinate Tools** (NEW!)
+- Script converter: `mccommand convert-to-relative` - Convert absolute to relative
+- Structure analyzer: `mccommand analyze` - Get structure extents for base-to-base placement
+- Auto-detect base points from existing scripts
+- Origin parameter: `--origin x,y,z` - Set reference point for relative coords
+- Build reusable, position-independent structures
+
+✅ **World Creation**
+- Create flat worlds with custom layers
+- Create void worlds with optional spawn platforms
+- Programmatic world generation via Python API
 
 ✅ **Infrastructure**
 - Full type checking with mypy (strict mode)
-- Comprehensive test suite (56 tests, 100% passing)
+- Comprehensive test suite (60+ tests, 100% passing)
 - CLI with multiple commands
 - Context manager support for safe resource handling
 
 ## Roadmap
+
+### ✅ Phase 1: Basic Commands (COMPLETE)
+- ✅ `/setblock` and `/fill` with absolute coordinates
+- ✅ Command parser with Lark grammar
+- ✅ World modification via amulet-core
 
 ### ✅ Phase 2: Block States (COMPLETE)
 - ✅ Support `[facing=north,half=top]` syntax
@@ -168,18 +261,22 @@ with WorldEditor("/path/to/world", origin=(100, 64, 200)) as editor:
 - ✅ Python API for world creation
 
 ### ✅ Phase 5: Relative Coordinates (COMPLETE)
-- ✅ Support `~` notation for relative coordinates
-- ✅ `~5` (offset from origin), `~` (same as origin)
-- ✅ Mixed absolute and relative: `10 ~5 -20`
-- ✅ `--origin` CLI parameter for setting origin point
-- ✅ Reusable command templates
+- ✅ Parse `~` relative coordinate syntax (`~5`, `~-1`, `~`)
+- ✅ Mixed absolute and relative coordinates
+- ✅ Origin parameter support (`--origin x,y,z`)
+- ✅ Script converter tool (`convert-to-relative`)
+- ✅ Structure analyzer tool (`analyze`) for extent calculation
+- ✅ Auto-detect base points from existing scripts
+- ✅ Build reusable, position-independent structures
 
-### Phase 6+
+### Phase 6+: Future Enhancements
 - NBT data for chests, signs, command blocks
 - Full block validation with helpful error messages
-- Replace mode with block filters
+- Replace mode with block filters (`/fill ... replace stone`)
+- Multi-script composition with YAML manifests
 - Template-based world generation
 - Advanced world manipulation (clone, copy regions)
+- Structure rotation (90°, 180°, 270°)
 
 See [PLAN.md](PLAN.md) for the complete implementation plan.
 

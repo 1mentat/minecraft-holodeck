@@ -5,6 +5,7 @@ import sys
 import click
 
 from minecraft_holodeck.api import WorldEditor
+from minecraft_holodeck.converter import ScriptConverter
 from minecraft_holodeck.exceptions import MCCommandError
 from minecraft_holodeck.world import create_flat_world, create_void_world
 
@@ -272,6 +273,90 @@ def create_void(
         blocks_x = size_chunks[0] * 16
         blocks_z = size_chunks[1] * 16
         click.echo(f"✓ Void world created successfully ({blocks_x}x{blocks_z} blocks)")
+    except MCCommandError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
+        sys.exit(1)
+
+
+@main.command()
+@click.argument("input_file", type=click.Path(exists=True))
+@click.option("-o", "--output", help="Output file (default: adds _relative suffix)")
+@click.option(
+    "--base",
+    help="Base point for relative coords (x,y,z). Default: auto-detect from min coords",
+)
+@click.option(
+    "--no-auto-detect",
+    is_flag=True,
+    help="Don't auto-detect base point, use 0,0,0 instead",
+)
+def convert_to_relative(
+    input_file: str, output: str | None, base: str | None, no_auto_detect: bool
+) -> None:
+    """Convert absolute coordinate script to relative coordinates.
+
+    Takes a build script with absolute coordinates and converts it to use
+    relative coordinates (~), making it position-independent.
+
+    Examples:
+
+        # Auto-detect base point from minimum coordinates
+        mccommand convert-to-relative cabin_build.txt
+
+        # Specify explicit base point
+        mccommand convert-to-relative cabin_build.txt --base 0,64,0
+
+        # Custom output filename
+        mccommand convert-to-relative cabin_build.txt -o cabin_relative.txt
+    """
+    from pathlib import Path
+
+    input_path = Path(input_file)
+
+    # Determine output path
+    if output:
+        output_path = Path(output)
+    else:
+        # Add _relative suffix before extension
+        stem = input_path.stem
+        suffix = input_path.suffix
+        output_path = input_path.parent / f"{stem}_relative{suffix}"
+
+    # Parse base point if provided
+    base_point = None
+    if base:
+        try:
+            parts = base.split(",")
+            if len(parts) != 3:
+                raise ValueError("Base must be x,y,z")
+            base_point = (int(parts[0]), int(parts[1]), int(parts[2]))
+        except ValueError as e:
+            click.echo(f"Error: Invalid base format: {e}", err=True)
+            sys.exit(1)
+
+    # Convert script
+    try:
+        converter = ScriptConverter()
+        click.echo(f"Converting {input_path} to relative coordinates...")
+
+        detected_base = converter.convert_file(
+            input_path,
+            output_path,
+            base_point=base_point,
+            auto_detect=not no_auto_detect,
+        )
+
+        click.echo(f"✓ Converted successfully")
+        click.echo(f"  Base point: {detected_base[0]}, {detected_base[1]}, {detected_base[2]}")
+        click.echo(f"  Output: {output_path}")
+        click.echo(f"\nUsage:")
+        click.echo(
+            f"  mccommand batch world {output_path} --origin {detected_base[0]},{detected_base[1]},{detected_base[2]}"
+        )
+
     except MCCommandError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
