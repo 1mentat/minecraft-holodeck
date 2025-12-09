@@ -16,13 +16,37 @@ from minecraft_holodeck.parser.ast import (
 class ASTTransformer(Transformer):  # type: ignore[type-arg]
     """Transform Lark parse tree to AST."""
 
-    def coord(self, items: list[Token]) -> Coordinate:
-        """Transform coordinate.
+    def abs_coord(self, items: list[Token]) -> Coordinate:
+        """Transform absolute coordinate.
 
-        Phase 1: Only absolute coordinates.
+        Grammar: abs_coord -> SIGNED_INT
+        Items: [number_token]
         """
         value = int(items[0])
         return Coordinate(value, relative=False)
+
+    def rel_coord(self, items: list[Token]) -> Coordinate:
+        """Transform relative coordinate.
+
+        Grammar: rel_coord -> "~" SIGNED_INT?
+        Items: [] (for ~) or [number_token] (for ~N)
+        Note: Lark doesn't include literal "~" in items
+        """
+        if len(items) == 0:
+            # Just ~, means offset 0
+            return Coordinate(0, relative=True)
+        else:
+            # ~N, means offset N
+            value = int(items[0])
+            return Coordinate(value, relative=True)
+
+    def coord(self, items: list[Coordinate]) -> Coordinate:
+        """Pass through coordinate (abs_coord or rel_coord already transformed).
+
+        Grammar: coord -> abs_coord | rel_coord
+        Items: [Coordinate] (already transformed by abs_coord or rel_coord)
+        """
+        return items[0]
 
     def position(self, items: list[Coordinate]) -> Position:
         """Transform position (3 coordinates)."""

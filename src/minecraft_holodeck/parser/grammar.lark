@@ -1,4 +1,5 @@
-// Phase 3: Added fill modes support
+// Phase 5: Added relative coordinates support
+// Relative coordinates: ~5 (offset from origin), ~ (same as ~0)
 // Fill modes: hollow, destroy, keep, outline, replace
 // Block states syntax: block_id[key=value,key2=value2]
 
@@ -13,9 +14,12 @@ fill_cmd: "fill" position position block_spec FILL_MODE?
 // Fill modes terminal
 FILL_MODE: "destroy" | "hollow" | "keep" | "outline" | "replace"
 
-// Position: three absolute integer coordinates
+// Position: three coordinates (absolute or relative)
 position: coord coord coord
-coord: SIGNED_INT
+coord: abs_coord | rel_coord
+
+abs_coord: SIGNED_INT                // absolute: 10, -5
+rel_coord: "~" SIGNED_INT?          // relative: ~5, ~-3, or ~
 
 // Block specification: namespace:id with optional block states
 block_spec: NAMESPACED_ID block_states?

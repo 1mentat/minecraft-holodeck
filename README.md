@@ -2,16 +2,17 @@
 
 A Python library for modifying Minecraft Java Edition world files through `/setblock` and `/fill` command interpretation.
 
-## Status: Phase 3 Complete 🎉
+## Status: Phase 5 Complete 🎉
 
-Fill modes are now fully supported! You can now build efficiently with hollow mode and other advanced fill modes:
-- `/fill 0 65 0 9 69 7 spruce_planks hollow` - Build walls in one command!
-- `/fill 0 64 0 10 70 10 stone keep` - Only fill air blocks
-- `/fill 0 64 0 10 70 10 glass outline` - Create wireframe boxes
+Relative coordinates are now fully supported! Build anywhere without editing coordinates:
+- `/setblock ~5 ~-1 ~5 minecraft:stone` - Place blocks relative to origin
+- `/fill ~ ~ ~ ~9 ~5 ~7 spruce_planks hollow` - Build structures from current position
+- `/setblock 10 ~5 -20 minecraft:glass` - Mix absolute and relative coordinates
 
-**Phase 2** block states are also complete:
-- `/setblock 0 64 0 minecraft:oak_stairs[facing=north,half=top]`
-- `/setblock 4 66 0 spruce_door[half=lower,hinge=left]`
+**Previous features:**
+- Fill modes: `/fill 0 65 0 9 69 7 spruce_planks hollow` - Build walls efficiently!
+- Block states: `/setblock 0 64 0 minecraft:oak_stairs[facing=north,half=top]`
+- World creation: Create flat and void worlds programmatically
 
 ## Installation
 
@@ -60,14 +61,20 @@ Fill a region:
 mccommand execute ./my_world "/fill 0 64 0 10 70 10 minecraft:glass"
 ```
 
+Use relative coordinates with custom origin:
+```bash
+mccommand execute ./my_world "/setblock ~5 ~-1 ~5 minecraft:stone" --origin 100,64,200
+# Places stone at (105, 63, 205)
+```
+
 Execute multiple commands from a file:
 ```bash
-mccommand batch ./my_world commands.txt
+mccommand batch ./my_world commands.txt --origin 100,64,200
 ```
 
 Parse and debug a command:
 ```bash
-mccommand parse "/setblock 10 64 10 minecraft:diamond_block"
+mccommand parse "/setblock ~10 ~ ~-5 minecraft:diamond_block"
 ```
 
 ### Python API
@@ -96,9 +103,17 @@ with WorldEditor("/path/to/world") as editor:
     editor.execute("/setblock 0 64 0 minecraft:diamond_block")
     editor.execute("/fill 0 64 0 10 70 10 minecraft:stone")
     editor.save()
+
+# Use relative coordinates with custom origin
+with WorldEditor("/path/to/world", origin=(100, 64, 200)) as editor:
+    # Places block at (105, 63, 205)
+    editor.execute("/setblock ~5 ~-1 ~5 minecraft:stone")
+    # Builds a 10x6x8 structure starting from origin
+    editor.execute("/fill ~ ~ ~ ~9 ~5 ~7 spruce_planks hollow")
+    editor.save()
 ```
 
-## Implemented Features (Phase 1-3)
+## Implemented Features (Phase 1-5)
 
 ✅ **Basic Commands**
 - `/setblock x y z block_id` - Place single blocks
@@ -115,7 +130,7 @@ with WorldEditor("/path/to/world") as editor:
 - Integer values: `[delay=3]`
 - Works with stairs, doors, slabs, and all state-based blocks
 
-✅ **Fill Modes** (NEW!)
+✅ **Fill Modes**
 - `hollow` - Fill only the outer shell, interior becomes air (perfect for building walls!)
 - `destroy` - Replace all blocks (same as default)
 - `keep` - Only fill air blocks, preserve existing blocks
@@ -125,10 +140,12 @@ with WorldEditor("/path/to/world") as editor:
 ✅ **Coordinates**
 - Absolute coordinates: `10 64 10`
 - Negative coordinates: `-10 64 -20`
+- Relative coordinates: `~5 ~-1 ~5` - Offset from origin
+- Mixed coordinates: `10 ~5 -20` - Combine absolute and relative
 
 ✅ **Infrastructure**
 - Full type checking with mypy (strict mode)
-- Comprehensive test suite (33 tests, 100% passing)
+- Comprehensive test suite (56 tests, 100% passing)
 - CLI with multiple commands
 - Context manager support for safe resource handling
 
@@ -150,8 +167,14 @@ with WorldEditor("/path/to/world") as editor:
 - ✅ CLI commands for world creation
 - ✅ Python API for world creation
 
-### Phase 5+
-- Relative coordinates (`~5 ~-1 ~5`)
+### ✅ Phase 5: Relative Coordinates (COMPLETE)
+- ✅ Support `~` notation for relative coordinates
+- ✅ `~5` (offset from origin), `~` (same as origin)
+- ✅ Mixed absolute and relative: `10 ~5 -20`
+- ✅ `--origin` CLI parameter for setting origin point
+- ✅ Reusable command templates
+
+### Phase 6+
 - NBT data for chests, signs, command blocks
 - Full block validation with helpful error messages
 - Replace mode with block filters

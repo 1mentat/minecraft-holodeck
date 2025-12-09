@@ -8,13 +8,22 @@ from typing import Literal
 class Coordinate:
     """Single coordinate (x, y, or z).
 
-    Phase 1: Only absolute coordinates (no relative yet).
+    Phase 5: Supports both absolute and relative coordinates.
+    - Absolute: value directly represents the coordinate (relative=False)
+    - Relative: value is offset from origin (relative=True)
     """
     value: int
-    relative: bool = False  # Always False in Phase 1
+    relative: bool = False
 
     def resolve(self, origin: int) -> int:
-        """Resolve to absolute coordinate."""
+        """Resolve to absolute coordinate.
+
+        Args:
+            origin: The origin coordinate (used if relative=True)
+
+        Returns:
+            Absolute coordinate value
+        """
         return origin + self.value if self.relative else self.value
 
 
