@@ -1,0 +1,109 @@
+# Converted to relative coordinates
+# Base point: -1, 64, -3
+# Use with: --origin -1,64,-3
+
+# 🏡 Woodsy Cabin Build Commands
+# Base point: X=0, Y=64, Z=0
+# Size: 9×7 base, ~6 blocks tall (plus roof)
+# Style: Rustic spruce cabin with stone foundation
+
+# Step 1: Clear the Build Area
+/fill ~+1 ~ ~+3 ~+11 ~+8 ~+11 minecraft:air
+
+# Step 2: Foundation (Cobblestone)
+/fill ~+1 ~ ~+3 ~+10 ~ ~+10 minecraft:cobblestone
+
+# Step 3: Floor (Spruce Planks)
+/fill ~+2 ~+1 ~+4 ~+9 ~+1 ~+9 minecraft:spruce_planks
+
+# Step 4: Walls — Build each wall separately
+# Front wall (Z=0)
+/fill ~+1 ~+1 ~+3 ~+10 ~+5 ~+3 minecraft:spruce_planks
+# Back wall (Z=7)
+/fill ~+1 ~+1 ~+10 ~+10 ~+5 ~+10 minecraft:spruce_planks
+# Left wall (X=0)
+/fill ~+1 ~+1 ~+3 ~+1 ~+5 ~+10 minecraft:spruce_planks
+# Right wall (X=9)
+/fill ~+10 ~+1 ~+3 ~+10 ~+5 ~+10 minecraft:spruce_planks
+
+# Step 5: Corner Log Pillars
+/fill ~+1 ~+1 ~+3 ~+1 ~+5 ~+3 minecraft:spruce_log
+/fill ~+10 ~+1 ~+3 ~+10 ~+5 ~+3 minecraft:spruce_log
+/fill ~+1 ~+1 ~+10 ~+1 ~+5 ~+10 minecraft:spruce_log
+/fill ~+10 ~+1 ~+10 ~+10 ~+5 ~+10 minecraft:spruce_log
+
+# Step 6: Clear Interior
+/fill ~+2 ~+2 ~+4 ~+9 ~+4 ~+9 minecraft:air
+
+# Step 7: Windows (Glass Panes)
+# Front windows (either side of door)
+/setblock ~+3 ~+3 ~+3 minecraft:glass_pane
+/setblock ~+8 ~+3 ~+3 minecraft:glass_pane
+
+# Side windows (left side)
+/fill ~+1 ~+3 ~+5 ~+1 ~+3 ~+6 minecraft:glass_pane
+/fill ~+1 ~+3 ~+7 ~+1 ~+3 ~+8 minecraft:glass_pane
+
+# Side windows (right side)
+/fill ~+10 ~+3 ~+5 ~+10 ~+3 ~+6 minecraft:glass_pane
+/fill ~+10 ~+3 ~+7 ~+10 ~+3 ~+8 minecraft:glass_pane
+
+# Back window
+/fill ~+5 ~+3 ~+10 ~+6 ~+3 ~+10 minecraft:glass_pane
+
+# Step 8: Front Door
+/setblock ~+5 ~+2 ~+3 minecraft:air
+/setblock ~+6 ~+2 ~+3 minecraft:air
+/setblock ~+5 ~+3 ~+3 minecraft:air
+/setblock ~+6 ~+3 ~+3 minecraft:air
+/setblock ~+5 ~+2 ~+3 minecraft:spruce_door[half=lower,hinge=left]
+/setblock ~+5 ~+3 ~+3 minecraft:spruce_door[half=upper,hinge=left]
+
+# Step 9: Peaked Roof (Spruce Stairs + Slabs)
+# First roof layer (stairs)
+/fill ~ ~+6 ~+2 ~ ~+6 ~+11 minecraft:spruce_stairs[facing=east]
+/fill ~+11 ~+6 ~+2 ~+11 ~+6 ~+11 minecraft:spruce_stairs[facing=west]
+
+# Second roof layer
+/fill ~+1 ~+7 ~+2 ~+1 ~+7 ~+11 minecraft:spruce_stairs[facing=east]
+/fill ~+10 ~+7 ~+2 ~+10 ~+7 ~+11 minecraft:spruce_stairs[facing=west]
+
+# Third roof layer
+/fill ~+2 ~+8 ~+2 ~+2 ~+8 ~+11 minecraft:spruce_stairs[facing=east]
+/fill ~+9 ~+8 ~+2 ~+9 ~+8 ~+11 minecraft:spruce_stairs[facing=west]
+
+# Roof peak (slabs)
+/fill ~+3 ~+8 ~+2 ~+8 ~+8 ~+11 minecraft:spruce_slab[type=top]
+/fill ~+3 ~+9 ~+2 ~+8 ~+9 ~+11 minecraft:spruce_slab[type=bottom]
+
+# Step 10: Stone Chimney
+/fill ~+9 ~+1 ~+8 ~+9 ~+11 ~+9 minecraft:cobblestone
+/fill ~+9 ~+2 ~+8 ~+9 ~+9 ~+9 minecraft:air
+/setblock ~+9 ~+2 ~+8 minecraft:campfire
+
+# Step 11: Decorative Touches
+# Log trim along the base
+/fill ~+2 ~+1 ~+3 ~+9 ~+1 ~+3 minecraft:stripped_spruce_log[axis=x]
+
+# Flower pots by the door
+/setblock ~+4 ~+1 ~+2 minecraft:potted_fern
+/setblock ~+7 ~+1 ~+2 minecraft:potted_spruce_sapling
+
+# Lanterns
+/setblock ~+5 ~+4 ~+2 minecraft:lantern[hanging=False]
+
+# Optional Enhancements
+# Cozy interior lighting
+/fill ~+3 ~+4 ~+5 ~+8 ~+4 ~+8 minecraft:lantern[hanging=True]
+
+# Leaf bushes outside
+/setblock ~ ~+1 ~+6 minecraft:oak_leaves[persistent=True]
+
+# Path to door
+/fill ~+5 ~ ~ ~+6 ~ ~+2 minecraft:gravel
+
+# Crafting table
+/setblock ~+3 ~+2 ~+8 minecraft:crafting_table
+
+# Bed
+/setblock ~+8 ~+2 ~+8 minecraft:red_bed[facing=west,part=head]

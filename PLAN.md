@@ -1235,7 +1235,93 @@ if __name__ == "__main__":
 
 ---
 
-### Phase 5: Advanced Fill Modes (Day 8)
+### Phase 5: Structure Analysis & Smart Placement (PLANNED)
+
+**Goal**: Analyze structure extents and enable base-to-base placement
+
+**Problem**: Current implementation places structures origin-to-origin, causing overlaps when trying to place structures adjacent to each other. Need intelligent placement that accounts for structure size.
+
+**New capabilities**:
+- 📊 Analyze scripts to compute bounding boxes
+- 📐 Calculate base-to-base placement positions
+- 🎯 Smart placement helpers for adjacent structures
+- 🧭 Different anchor points (corner, center, base-center)
+
+**Components**:
+
+1. **Structure Analyzer** (IMPLEMENTED)
+   - `BoundingBox` class with width/height/depth properties
+   - `analyze_script()` method to compute structure extents
+   - `mccommand analyze <script>` CLI command
+   - Shows bounding box and base-to-base calculations
+
+2. **Smart Placement Helpers** (PLANNED)
+   ```python
+   placer = StructurePlacer()
+   # Place adjacent with proper spacing
+   placer.place_adjacent(world, "cabin.txt",
+                         relative_to=(0, 64, 0),
+                         direction="east",
+                         gap=10)  # Accounts for structure width
+
+   # Place in grid pattern
+   placer.place_grid(world, "cabin.txt",
+                     grid_size=(3, 3),
+                     spacing=(5, 5))
+   ```
+
+3. **Anchor Points** (PLANNED)
+   ```python
+   # Different reference points for placement
+   placer.place_at(world, "tower.txt",
+                   position=(0, 64, 0),
+                   anchor="center")  # or "corner", "base-center"
+   ```
+
+4. **Extent Queries** (PLANNED)
+   ```python
+   analyzer = StructureAnalyzer()
+   # Query specific dimensions
+   width = analyzer.get_width_at_y(script, y=64)
+   footprint = analyzer.get_base_footprint(script)  # 2D bounds
+   ```
+
+**Tasks**:
+1. ✅ Implement BoundingBox dataclass
+2. ✅ Add analyze_script() method
+3. ✅ Add analyze CLI command
+4. ✅ Update converter to show extent info
+5. ⏳ Implement StructurePlacer class
+6. ⏳ Add place_adjacent() method
+7. ⏳ Add place_grid() method
+8. ⏳ Support anchor points
+9. ⏳ Add extent query methods
+10. ⏳ Tests for all placement modes
+
+**Deliverables**:
+- ✅ `mccommand analyze cabin.txt` shows structure dimensions
+- ✅ Converter output includes base-to-base placement examples
+- ⏳ `place_adjacent()` for automatic spacing calculation
+- ⏳ Grid placement for villages
+- ⏳ Multiple anchor points for flexible positioning
+
+**Example Use Case**:
+```bash
+# Analyze structure first
+mccommand analyze cabin.txt
+# Output: Size: 11×9×8 (width×height×depth)
+
+# Place with correct base-to-base spacing
+# Cabin 1 at x=0, Cabin 2 needs x=11 (width) + 10 (gap) = 21
+mccommand batch world cabin.txt --origin 0,64,0
+mccommand batch world cabin.txt --origin 21,64,0  # No overlap!
+```
+
+**Why this matters**: Solves the "place this building 10 blocks east base-to-base" problem! Enables precise architectural placement without manual calculation.
+
+---
+
+### Phase 6: Advanced Fill Modes (Day 8)
 
 **Goal**: Outline, keep, replace modes for advanced building
 
@@ -1259,7 +1345,7 @@ if __name__ == "__main__":
 
 ---
 
-### Phase 6: Advanced Block Registry (Day 9-10)
+### Phase 7: Advanced Block Registry (Day 9-10)
 
 **Goal**: Full block validation with comprehensive block data
 
@@ -1284,7 +1370,7 @@ if __name__ == "__main__":
 
 ---
 
-### Phase 7: NBT & Tile Entities (Day 11-12)
+### Phase 8: NBT & Tile Entities (Day 11-12)
 
 **Goal**: Support chests, signs, and other tile entities with data
 

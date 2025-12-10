@@ -232,6 +232,19 @@ class TestRelativeCoordinates:
         assert result.pos2.x.value == 10
         assert result.pos2.x.relative is True
 
+    def test_parse_relative_negative(self) -> None:
+        """Test parsing negative relative coordinates."""
+        parser = CommandParser()
+        result = parser.parse("/setblock ~-10 ~-5 ~-1 minecraft:dirt")
+
+        assert isinstance(result, SetblockCommand)
+        assert result.position.x.value == -10
+        assert result.position.x.relative is True
+        assert result.position.y.value == -5
+        assert result.position.y.relative is True
+        assert result.position.z.value == -1
+        assert result.position.z.relative is True
+
     def test_parse_relative_with_block_states(self) -> None:
         """Test parsing relative coordinates with block states."""
         parser = CommandParser()
