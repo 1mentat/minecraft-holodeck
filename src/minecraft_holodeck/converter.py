@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Iterator, TextIO
 
 from minecraft_holodeck.parser import CommandParser, FillCommand, SetblockCommand
-from minecraft_holodeck.parser.ast import Coordinate, Position
+from minecraft_holodeck.parser.ast import BlockSpec, Coordinate, Position
 
 
 def _extract_positions_from_command(
@@ -80,6 +80,39 @@ class BoundingBox:
     max_y: int
     max_z: int
 
+    @classmethod
+    def from_min_max(
+        cls,
+        min_x: float,
+        min_y: float,
+        min_z: float,
+        max_x: float,
+        max_y: float,
+        max_z: float,
+    ) -> "BoundingBox":
+        """Create a BoundingBox from float coordinates, converting to int.
+
+        Args:
+            min_x, min_y, min_z: Minimum corner coordinates (can be float)
+            max_x, max_y, max_z: Maximum corner coordinates (can be float)
+
+        Returns:
+            BoundingBox with integer coordinates
+        """
+        return cls(
+            int(min_x), int(min_y), int(min_z),
+            int(max_x), int(max_y), int(max_z),
+        )
+
+    @classmethod
+    def empty(cls) -> "BoundingBox":
+        """Create an empty bounding box at the origin.
+
+        Returns:
+            BoundingBox with all coordinates at zero
+        """
+        return cls(0, 0, 0, 0, 0, 0)
+
     @property
     def width(self) -> int:
         """Width in X dimension (inclusive)."""
@@ -138,17 +171,13 @@ class ScriptConverter:
             _parse_commands()
         )
 
-        # If no coordinates found, return default
+        # If no coordinates found, return empty bounding box
         if min_x == float("inf"):
-            return BoundingBox(0, 0, 0, 0, 0, 0)
+            return BoundingBox.empty()
 
-        return BoundingBox(
-            int(min_x),
-            int(min_y),
-            int(min_z),
-            int(max_x),
-            int(max_y),
-            int(max_z),
+        return BoundingBox.from_min_max(
+            min_x, min_y, min_z,
+            max_x, max_y, max_z,
         )
 
     def convert_file(
@@ -317,11 +346,11 @@ class ScriptConverter:
                 # Format with explicit sign
                 return f"~{offset:+d}".replace("+-", "-")
 
-    def _format_block(self, block) -> str:
+    def _format_block(self, block: BlockSpec) -> str:
         """Format a block spec to string.
 
         Args:
-            block: BlockSpec
+            block: BlockSpec to format
 
         Returns:
             Block string like "minecraft:stone" or "oak_stairs[facing=north]"

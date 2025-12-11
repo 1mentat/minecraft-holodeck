@@ -6,6 +6,7 @@ import amulet  # type: ignore[import-untyped]
 from amulet.api.block import Block  # type: ignore[import-untyped]
 from amulet.api.level import World  # type: ignore[import-untyped]
 
+from minecraft_holodeck.constants import MINECRAFT_PLATFORM, MINECRAFT_VERSION
 from minecraft_holodeck.exceptions import WorldOperationError
 
 
@@ -24,8 +25,8 @@ class WorldModifier:
         try:
             self.world: World = amulet.load_level(world_path)
             self.dimension = "minecraft:overworld"  # Default dimension
-            self.platform = "java"  # Java Edition
-            self.version = (1, 20, 1)  # Target version
+            self.platform = MINECRAFT_PLATFORM
+            self.version = MINECRAFT_VERSION
         except Exception as e:
             raise WorldOperationError(f"Failed to load world: {e}") from e
 
@@ -55,6 +56,20 @@ class WorldModifier:
             raise WorldOperationError(
                 f"Failed to set block at ({x}, {y}, {z}): {e}"
             ) from e
+
+    def _place_block(self, x: int, y: int, z: int, block: Block) -> None:
+        """Internal helper to place a block at the given coordinates.
+
+        Args:
+            x, y, z: Absolute coordinates
+            block: Amulet Block object to place
+        """
+        self.world.set_version_block(
+            x, y, z,
+            self.dimension,
+            (self.platform, self.version),
+            block
+        )
 
     def fill_region(
         self,
@@ -121,12 +136,7 @@ class WorldModifier:
         for x in range(min_x, max_x + 1):
             for y in range(min_y, max_y + 1):
                 for z in range(min_z, max_z + 1):
-                    self.world.set_version_block(
-                        x, y, z,
-                        self.dimension,
-                        (self.platform, self.version),
-                        block
-                    )
+                    self._place_block(x, y, z, block)
                     count += 1
         return count
 
@@ -161,21 +171,11 @@ class WorldModifier:
 
                     if is_boundary:
                         # Place block on boundary
-                        self.world.set_version_block(
-                            x, y, z,
-                            self.dimension,
-                            (self.platform, self.version),
-                            block
-                        )
+                        self._place_block(x, y, z, block)
                         count += 1
                     else:
                         # Fill interior with air
-                        self.world.set_version_block(
-                            x, y, z,
-                            self.dimension,
-                            (self.platform, self.version),
-                            air
-                        )
+                        self._place_block(x, y, z, air)
 
         return count
 
@@ -202,12 +202,7 @@ class WorldModifier:
                     # Check if current block is air
                     existing = self.world.get_block(x, y, z, self.dimension)
                     if existing.namespaced_name == "minecraft:air":
-                        self.world.set_version_block(
-                            x, y, z,
-                            self.dimension,
-                            (self.platform, self.version),
-                            block
-                        )
+                        self._place_block(x, y, z, block)
                         count += 1
         return count
 
@@ -233,34 +228,19 @@ class WorldModifier:
         # 4 edges parallel to X-axis
         for x in range(min_x, max_x + 1):
             for y, z in [(min_y, min_z), (min_y, max_z), (max_y, min_z), (max_y, max_z)]:
-                self.world.set_version_block(
-                    x, y, z,
-                    self.dimension,
-                    (self.platform, self.version),
-                    block
-                )
+                self._place_block(x, y, z, block)
                 count += 1
 
         # 4 edges parallel to Y-axis (excluding already placed corners)
         for y in range(min_y + 1, max_y):
             for x, z in [(min_x, min_z), (min_x, max_z), (max_x, min_z), (max_x, max_z)]:
-                self.world.set_version_block(
-                    x, y, z,
-                    self.dimension,
-                    (self.platform, self.version),
-                    block
-                )
+                self._place_block(x, y, z, block)
                 count += 1
 
         # 4 edges parallel to Z-axis (excluding already placed corners)
         for z in range(min_z + 1, max_z):
             for x, y in [(min_x, min_y), (min_x, max_y), (max_x, min_y), (max_x, max_y)]:
-                self.world.set_version_block(
-                    x, y, z,
-                    self.dimension,
-                    (self.platform, self.version),
-                    block
-                )
+                self._place_block(x, y, z, block)
                 count += 1
 
         return count

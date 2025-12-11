@@ -2004,11 +2004,11 @@ return BoundingBox(
 | 3 | CLI error handling decorator | Medium | ~60 lines saved | 1 file | ✅ Done |
 | 4 | Position extraction consolidation | Medium | ~30 lines saved | 1 file | ✅ Done |
 | 5 | World creation setup helper | Medium | ~40 lines saved | 1 file | ✅ Done |
-| 6 | Platform/version constants | Low | Maintainability | 2-3 files | |
-| 7 | Standardize imports | Low | Code style | 2 files | |
-| 8 | Missing type annotation | Low | Type safety | 1 file | |
-| 9 | Block placement helper | Low | ~20 lines saved | 1 file | |
-| 10 | BoundingBox factory method | Low | Cleaner API | 1 file | |
+| 6 | Platform/version constants | Low | Maintainability | 2-3 files | ✅ Done |
+| 7 | Standardize imports | Low | Code style | 2 files | ✅ Done |
+| 8 | Missing type annotation | Low | Type safety | 1 file | ✅ Done |
+| 9 | Block placement helper | Low | ~20 lines saved | 1 file | ✅ Done |
+| 10 | BoundingBox factory method | Low | Cleaner API | 1 file | ✅ Done |
 
 ---
 
