@@ -1,5 +1,6 @@
 """Command parser module."""
 
+from minecraft_holodeck.exceptions import CommandSyntaxError
 from minecraft_holodeck.parser.ast import (
     BlockSpec,
     CommandAST,
@@ -8,7 +9,7 @@ from minecraft_holodeck.parser.ast import (
     Position,
     SetblockCommand,
 )
-from minecraft_holodeck.parser.parser import CommandParser, CommandSyntaxError
+from minecraft_holodeck.parser.parser import CommandParser
 
 __all__ = [
     "CommandParser",
