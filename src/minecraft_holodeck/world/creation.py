@@ -4,14 +4,15 @@ This module provides functions to create new Minecraft Java Edition worlds
 programmatically using amulet-core. Supports flat worlds and void worlds.
 """
 
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
-from contextlib import contextmanager
 
 from amulet.api.block import Block  # type: ignore[import-untyped]
 from amulet.level.formats.anvil_world import AnvilFormat  # type: ignore[import-untyped]
-from amulet_nbt import TAG_String, TAG_Int, TAG_Long, TAG_Byte  # type: ignore[import-untyped]
+from amulet_nbt import TAG_Byte, TAG_Int, TAG_Long, TAG_String  # type: ignore[import-untyped]
 
+from minecraft_holodeck.constants import MINECRAFT_PLATFORM, MINECRAFT_VERSION
 from minecraft_holodeck.exceptions import WorldOperationError
 
 
@@ -50,8 +51,8 @@ def _create_base_world(
     # Create a new Minecraft Java Edition world using AnvilFormat
     world_wrapper = AnvilFormat(str(world_path))
     world_wrapper.create_and_open(
-        platform="java",
-        version=(1, 20, 1),
+        platform=MINECRAFT_PLATFORM,
+        version=MINECRAFT_VERSION,
         overwrite=True
     )
 

@@ -1,7 +1,13 @@
-"""Command-line interface for minecraft-holodeck."""
+"""Command-line interface for minecraft-holodeck.
+
+Note: Some imports are done inside functions (lazy loading) to improve CLI
+startup performance. Heavy modules like the parser or json are only loaded
+when the specific command that needs them is invoked.
+"""
 
 import sys
 from functools import wraps
+from pathlib import Path
 from typing import Callable, TypeVar
 
 import click
@@ -302,8 +308,6 @@ def analyze(script_file: str) -> None:
 
         mccommand analyze scripts/cabin_build.txt
     """
-    from pathlib import Path
-
     script_path = Path(script_file)
 
     converter = ScriptConverter()
@@ -363,8 +367,6 @@ def convert_to_relative(
         # Custom output filename
         mccommand convert-to-relative cabin_build.txt -o cabin_relative.txt
     """
-    from pathlib import Path
-
     input_path = Path(input_file)
 
     # Determine output path
