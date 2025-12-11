@@ -1758,6 +1758,259 @@ class UndoableWorldEditor(WorldEditor):
 
 ---
 
+## 9. Refactors
+
+Code quality improvements identified during codebase review. These can be implemented independently by agents.
+
+### Refactor 1: Remove Duplicate `CommandSyntaxError` Class (High Priority)
+
+**Problem**: `CommandSyntaxError` is defined in two places:
+- `src/minecraft_holodeck/exceptions.py:9-11` (canonical location)
+- `src/minecraft_holodeck/parser/parser.py:12-14` (duplicate)
+
+The parser module defines its own local version instead of using the canonical one from `exceptions.py`. This could cause bugs where different parts of the code use different exception classes.
+
+**Solution**:
+1. Remove the duplicate `CommandSyntaxError` class from `parser/parser.py`
+2. Import from `minecraft_holodeck.exceptions` instead
+3. Update `parser/__init__.py` to re-export from `exceptions` instead of `parser`
+4. Verify tests still pass
+
+**Files to modify**:
+- `src/minecraft_holodeck/parser/parser.py`
+- `src/minecraft_holodeck/parser/__init__.py`
+
+---
+
+### Refactor 2: Extract CLI Parsing Helpers (Medium Priority)
+
+**Problem**: Duplicated parsing logic in CLI commands:
+
+**Origin parsing** (identical in 3 places):
+- `cli.py:38-44` (`execute` command)
+- `cli.py:86-92` (`batch` command)
+- `cli.py:379-387` (`convert_to_relative` command - similar for `--base`)
+
+**Size parsing** (identical in 2 places):
+- `cli.py:182-189` (`create_flat` command)
+- `cli.py:254-262` (`create_void` command)
+
+**Solution**:
+1. Create helper function `_parse_origin(origin: str) -> tuple[int, int, int]`
+2. Create helper function `_parse_size(size: str) -> tuple[int, int]`
+3. Replace duplicated code with calls to these helpers
+4. Add proper error messages to helpers
+
+**Files to modify**:
+- `src/minecraft_holodeck/cli.py`
+
+---
+
+### Refactor 3: Extract CLI Error Handling Decorator (Medium Priority)
+
+**Problem**: Every CLI command has the same try/except pattern:
+```python
+try:
+    # ... logic ...
+except MCCommandError as e:
+    click.echo(f"Error: {e}", err=True)
+    sys.exit(1)
+except Exception as e:
+    click.echo(f"Unexpected error: {e}", err=True)
+    sys.exit(1)
+```
+
+This appears in 6 commands: `execute`, `batch`, `create_flat`, `create_void`, `analyze`, `convert_to_relative`.
+
+**Solution**:
+1. Create a decorator `@cli_error_handler` that wraps functions
+2. The decorator should catch `MCCommandError` and general `Exception`
+3. Apply decorator to all CLI commands
+4. Remove duplicated try/except blocks
+
+**Files to modify**:
+- `src/minecraft_holodeck/cli.py`
+
+---
+
+### Refactor 4: Consolidate Position Extraction in ScriptConverter (Medium Priority)
+
+**Problem**: `converter.py` has nearly identical logic in two methods:
+- `analyze_script` (lines 78-99): Extracts positions to calculate bounding box
+- `_detect_base_point` (lines 205-229): Extracts positions to find minimum coordinates
+
+Both iterate over commands, extract positions from `SetblockCommand`/`FillCommand`, and calculate min/max values.
+
+**Solution**:
+1. Extract a shared private method `_extract_positions(commands) -> Iterator[Position]`
+2. Or create `_get_coordinate_bounds(commands) -> tuple[min_coords, max_coords]`
+3. Refactor both `analyze_script` and `_detect_base_point` to use the shared method
+4. Update tests to verify behavior unchanged
+
+**Files to modify**:
+- `src/minecraft_holodeck/converter.py`
+
+---
+
+### Refactor 5: Extract World Creation Setup Helper (Medium Priority)
+
+**Problem**: `creation.py` has nearly identical boilerplate in both functions:
+- `create_flat_world` (lines 66-101)
+- `create_void_world` (lines 173-208)
+
+Both set the same NBT tags:
+- `LevelName`, `GameType`, `Difficulty`, `hardcore`, `MapFeatures`
+- `raining`, `thundering`, `Time`
+- `SpawnX`, `SpawnY`, `SpawnZ`
+
+**Solution**:
+1. Create helper function `_create_base_world(path, name, size_chunks, spawn_y) -> AnvilFormat`
+2. This function handles:
+   - Creating world directory
+   - Creating AnvilFormat wrapper
+   - Setting all common NBT tags
+   - Calculating and setting spawn point
+3. Refactor `create_flat_world` and `create_void_world` to call the helper
+4. Each function then only handles its specific logic (layers vs spawn platform)
+
+**Files to modify**:
+- `src/minecraft_holodeck/world/creation.py`
+
+---
+
+### Refactor 6: Define Platform/Version Constants (Low Priority)
+
+**Problem**: Platform `"java"` and version `(1, 20, 1)` are hardcoded in multiple places:
+- `modifier.py:27-28`
+- `creation.py:73-74`
+- `creation.py:179-180`
+
+**Solution**:
+1. Create constants at module or package level:
+   ```python
+   MINECRAFT_PLATFORM = "java"
+   MINECRAFT_VERSION = (1, 20, 1)
+   ```
+2. Replace all hardcoded values with constants
+3. Consider placing in a shared `constants.py` or in `__init__.py`
+
+**Files to modify**:
+- `src/minecraft_holodeck/world/modifier.py`
+- `src/minecraft_holodeck/world/creation.py`
+- Optionally create `src/minecraft_holodeck/constants.py`
+
+---
+
+### Refactor 7: Standardize Import Style (Low Priority)
+
+**Problem**: Some imports are at module level, others inside functions:
+- `cli.py:48` - imports `CommandParser` inside `execute`
+- `cli.py:133-135` - imports `json`, `asdict`, `CommandParser` inside `parse`
+- `cli.py:296, 364` - imports `Path` inside functions
+- `creation.py:104, 212` - imports `WorldModifier` inside functions
+
+The pattern seems intentional (lazy loading for CLI startup performance) but is inconsistent.
+
+**Solution** (choose one approach):
+1. **Option A**: Move all imports to top level (simpler, more standard)
+2. **Option B**: Keep lazy loading but document it with a comment explaining why
+3. If keeping lazy loading, be consistent about which modules are lazy-loaded
+
+**Files to modify**:
+- `src/minecraft_holodeck/cli.py`
+- `src/minecraft_holodeck/world/creation.py`
+
+---
+
+### Refactor 8: Add Missing Type Annotation (Low Priority)
+
+**Problem**: `converter.py:301` - The `_format_block` method takes `block` parameter without type annotation:
+```python
+def _format_block(self, block) -> str:  # Missing: block: BlockSpec
+```
+
+**Solution**:
+1. Add the missing type annotation: `block: BlockSpec`
+2. Run mypy to ensure no other missing annotations
+
+**Files to modify**:
+- `src/minecraft_holodeck/converter.py`
+
+---
+
+### Refactor 9: Extract Block Placement Helper in WorldModifier (Low Priority)
+
+**Problem**: The `set_version_block` call pattern is repeated in `_fill_basic`, `_fill_hollow`, `_fill_keep`, and `_fill_outline` methods. The same 5-line block placement code appears ~7 times:
+```python
+self.world.set_version_block(
+    x, y, z,
+    self.dimension,
+    (self.platform, self.version),
+    block
+)
+```
+
+**Solution**:
+1. Create a private helper method:
+   ```python
+   def _place_block(self, x: int, y: int, z: int, block: Block) -> None:
+       self.world.set_version_block(
+           x, y, z,
+           self.dimension,
+           (self.platform, self.version),
+           block
+       )
+   ```
+2. Replace all direct `set_version_block` calls with `self._place_block()`
+
+**Files to modify**:
+- `src/minecraft_holodeck/world/modifier.py`
+
+---
+
+### Refactor 10: Add BoundingBox Factory Method (Low Priority)
+
+**Problem**: `BoundingBox` is created in multiple places with `int()` casting from float:
+```python
+return BoundingBox(
+    int(min_x), int(min_y), int(min_z),
+    int(max_x), int(max_y), int(max_z),
+)
+```
+
+**Solution**:
+1. Add a factory classmethod to `BoundingBox`:
+   ```python
+   @classmethod
+   def from_min_max(cls, min_x, min_y, min_z, max_x, max_y, max_z) -> "BoundingBox":
+       return cls(int(min_x), int(min_y), int(min_z),
+                  int(max_x), int(max_y), int(max_z))
+   ```
+2. Or add an `empty()` classmethod for the default case
+3. Update callers to use the factory method
+
+**Files to modify**:
+- `src/minecraft_holodeck/converter.py`
+
+---
+
+### Refactoring Priority Summary
+
+| # | Refactor | Priority | Estimated Impact | Files |
+|---|----------|----------|------------------|-------|
+| 1 | Remove duplicate `CommandSyntaxError` | High | Bug prevention | 2 files |
+| 2 | CLI parsing helpers | Medium | ~30 lines saved | 1 file |
+| 3 | CLI error handling decorator | Medium | ~60 lines saved | 1 file |
+| 4 | Position extraction consolidation | Medium | ~30 lines saved | 1 file |
+| 5 | World creation setup helper | Medium | ~40 lines saved | 1 file |
+| 6 | Platform/version constants | Low | Maintainability | 2-3 files |
+| 7 | Standardize imports | Low | Code style | 2 files |
+| 8 | Missing type annotation | Low | Type safety | 1 file |
+| 9 | Block placement helper | Low | ~20 lines saved | 1 file |
+| 10 | BoundingBox factory method | Low | Cleaner API | 1 file |
+
+---
+
 ## Dependencies Summary
 
 ### Core Dependencies
