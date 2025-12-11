@@ -1,6 +1,8 @@
 """Command-line interface for minecraft-holodeck."""
 
 import sys
+from functools import wraps
+from typing import Callable, TypeVar
 
 import click
 
@@ -8,6 +10,72 @@ from minecraft_holodeck.api import WorldEditor
 from minecraft_holodeck.converter import ScriptConverter
 from minecraft_holodeck.exceptions import MCCommandError
 from minecraft_holodeck.world import create_flat_world, create_void_world
+
+F = TypeVar("F", bound=Callable[..., None])
+
+
+def _parse_origin(origin: str) -> tuple[int, int, int]:
+    """Parse origin string into a coordinate tuple.
+
+    Args:
+        origin: Comma-separated string like "0,64,0"
+
+    Returns:
+        Tuple of (x, y, z) integers
+
+    Raises:
+        click.UsageError: If origin format is invalid
+    """
+    try:
+        parts = origin.split(",")
+        if len(parts) != 3:
+            raise ValueError("Origin must be three integers (x,y,z)")
+        return (int(parts[0]), int(parts[1]), int(parts[2]))
+    except ValueError as e:
+        raise click.UsageError(f"Invalid origin format: {e}") from e
+
+
+def _parse_size(size: str) -> tuple[int, int]:
+    """Parse size string into a chunk size tuple.
+
+    Args:
+        size: Comma-separated string like "8,8"
+
+    Returns:
+        Tuple of (x_chunks, z_chunks) integers
+
+    Raises:
+        click.UsageError: If size format is invalid
+    """
+    try:
+        parts = size.split(",")
+        if len(parts) != 2:
+            raise ValueError("Size must be two integers (x,z)")
+        return (int(parts[0]), int(parts[1]))
+    except ValueError as e:
+        raise click.UsageError(f"Invalid size format: {e}") from e
+
+
+def cli_error_handler(func: F) -> F:
+    """Decorator to handle common CLI errors consistently.
+
+    Catches MCCommandError and general exceptions, prints them to stderr,
+    and exits with code 1.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except click.UsageError:
+            # Re-raise click errors so they're handled by click
+            raise
+        except MCCommandError as e:
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
+        except Exception as e:
+            click.echo(f"Unexpected error: {e}", err=True)
+            sys.exit(1)
+    return wrapper  # type: ignore[return-value]
 
 
 @click.group()
@@ -25,6 +93,7 @@ def main() -> None:
 @click.argument("command")
 @click.option("--origin", default="0,0,0", help="Origin for relative coords (x,y,z)")
 @click.option("--dry-run", is_flag=True, help="Parse but don't execute")
+@cli_error_handler
 def execute(world_path: str, command: str, origin: str, dry_run: bool) -> None:
     """Execute a single command on a world.
 
@@ -34,45 +103,28 @@ def execute(world_path: str, command: str, origin: str, dry_run: bool) -> None:
 
         mccommand execute ./my_world "/fill 0 0 0 10 10 10 minecraft:glass"
     """
-    # Parse origin
-    try:
-        origin_tuple = tuple(map(int, origin.split(",")))
-        if len(origin_tuple) != 3:
-            raise ValueError("Origin must be three integers")
-    except ValueError as e:
-        click.echo(f"Error: Invalid origin format: {e}", err=True)
-        sys.exit(1)
+    origin_tuple = _parse_origin(origin)
 
     if dry_run:
         # Just parse and show AST
         from minecraft_holodeck.parser import CommandParser
         parser = CommandParser()
-        try:
-            ast = parser.parse(command)
-            click.echo(f"Parsed successfully: {ast}")
-        except MCCommandError as e:
-            click.echo(f"Error: {e}", err=True)
-            sys.exit(1)
+        ast = parser.parse(command)
+        click.echo(f"Parsed successfully: {ast}")
         return
 
     # Execute command
-    try:
-        with WorldEditor(world_path, origin_tuple) as editor:
-            count = editor.execute(command)
-            editor.save()
-            click.echo(f"✓ Modified {count} blocks")
-    except MCCommandError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
-        sys.exit(1)
+    with WorldEditor(world_path, origin_tuple) as editor:
+        count = editor.execute(command)
+        editor.save()
+        click.echo(f"✓ Modified {count} blocks")
 
 
 @main.command()
 @click.argument("world_path", type=click.Path(exists=True))
 @click.argument("commands_file", type=click.File("r"))
 @click.option("--origin", default="0,0,0", help="Origin for relative coords (x,y,z)")
+@cli_error_handler
 def batch(world_path: str, commands_file: click.File, origin: str) -> None:
     """Execute multiple commands from a file.
 
@@ -82,47 +134,36 @@ def batch(world_path: str, commands_file: click.File, origin: str) -> None:
 
         mccommand batch ./my_world commands.txt
     """
-    # Parse origin
-    try:
-        origin_tuple = tuple(map(int, origin.split(",")))
-        if len(origin_tuple) != 3:
-            raise ValueError("Origin must be three integers")
-    except ValueError as e:
-        click.echo(f"Error: Invalid origin format: {e}", err=True)
-        sys.exit(1)
+    origin_tuple = _parse_origin(origin)
 
     total = 0
     errors = 0
 
-    try:
-        with WorldEditor(world_path, origin_tuple) as editor:
-            for i, line in enumerate(commands_file, 1):  # type: ignore[arg-type,var-annotated]
-                line_str = str(line).strip()
-                if not line_str or line_str.startswith("#"):
-                    continue
+    with WorldEditor(world_path, origin_tuple) as editor:
+        for i, line in enumerate(commands_file, 1):  # type: ignore[arg-type,var-annotated]
+            line_str = str(line).strip()
+            if not line_str or line_str.startswith("#"):
+                continue
 
-                try:
-                    count = editor.execute(line_str)
-                    total += count
-                    click.echo(f"Line {i}: {count} blocks")
-                except MCCommandError as e:
-                    click.echo(f"Line {i} error: {e}", err=True)
-                    errors += 1
+            try:
+                count = editor.execute(line_str)
+                total += count
+                click.echo(f"Line {i}: {count} blocks")
+            except MCCommandError as e:
+                click.echo(f"Line {i} error: {e}", err=True)
+                errors += 1
 
-            editor.save()
+        editor.save()
 
-        click.echo(f"\n✓ Total: {total} blocks modified")
-        if errors:
-            click.echo(f"⚠ {errors} commands failed", err=True)
-            sys.exit(1)
-
-    except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
+    click.echo(f"\n✓ Total: {total} blocks modified")
+    if errors:
+        click.echo(f"⚠ {errors} commands failed", err=True)
         sys.exit(1)
 
 
 @main.command()
 @click.argument("command")
+@cli_error_handler
 def parse(command: str) -> None:
     """Parse a command and show the AST (for debugging).
 
@@ -136,12 +177,8 @@ def parse(command: str) -> None:
     from minecraft_holodeck.parser import CommandParser
 
     parser = CommandParser()
-    try:
-        ast = parser.parse(command)
-        click.echo(json.dumps(asdict(ast), indent=2))
-    except MCCommandError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
+    ast = parser.parse(command)
+    click.echo(json.dumps(asdict(ast), indent=2))
 
 
 @main.command()
@@ -159,6 +196,7 @@ def parse(command: str) -> None:
     ),
 )
 @click.option("--name", help="World name (defaults to folder name)")
+@cli_error_handler
 def create_flat(world_path: str, size: str, layers: str | None, name: str | None) -> None:
     """Create a new flat world.
 
@@ -178,15 +216,7 @@ def create_flat(world_path: str, size: str, layers: str | None, name: str | None
         # With custom name
         mccommand create-flat ./my_world --name "My Test World"
     """
-    # Parse size
-    try:
-        size_parts = size.split(",")
-        if len(size_parts) != 2:
-            raise ValueError("Size must be x,z")
-        size_chunks = (int(size_parts[0]), int(size_parts[1]))
-    except ValueError as e:
-        click.echo(f"Error: Invalid size format: {e}", err=True)
-        sys.exit(1)
+    size_chunks = _parse_size(size)
 
     # Parse layers if provided
     layer_list = None
@@ -197,27 +227,19 @@ def create_flat(world_path: str, size: str, layers: str | None, name: str | None
                 block, thickness = layer_spec.split(":")
                 layer_list.append((block.strip(), int(thickness)))
         except ValueError as e:
-            click.echo(f"Error: Invalid layers format: {e}", err=True)
-            sys.exit(1)
+            raise click.UsageError(f"Invalid layers format: {e}") from e
 
     # Create world
-    try:
-        click.echo(f"Creating flat world at {world_path}...")
-        create_flat_world(
-            world_path,
-            size_chunks=size_chunks,
-            layers=layer_list,
-            name=name,
-        )
-        blocks_x = size_chunks[0] * 16
-        blocks_z = size_chunks[1] * 16
-        click.echo(f"✓ World created successfully ({blocks_x}x{blocks_z} blocks)")
-    except MCCommandError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
-        sys.exit(1)
+    click.echo(f"Creating flat world at {world_path}...")
+    create_flat_world(
+        world_path,
+        size_chunks=size_chunks,
+        layers=layer_list,
+        name=name,
+    )
+    blocks_x = size_chunks[0] * 16
+    blocks_z = size_chunks[1] * 16
+    click.echo(f"✓ World created successfully ({blocks_x}x{blocks_z} blocks)")
 
 
 @main.command()
@@ -233,6 +255,7 @@ def create_flat(world_path: str, size: str, layers: str | None, name: str | None
     help="Create a 3x3 stone spawn platform at y=64",
 )
 @click.option("--name", help="World name (defaults to folder name)")
+@cli_error_handler
 def create_void(
     world_path: str, size: str, spawn_platform: bool, name: str | None
 ) -> None:
@@ -251,38 +274,24 @@ def create_void(
         # Larger void world
         mccommand create-void ./void_world --size 8,8
     """
-    # Parse size
-    try:
-        size_parts = size.split(",")
-        if len(size_parts) != 2:
-            raise ValueError("Size must be x,z")
-        size_chunks = (int(size_parts[0]), int(size_parts[1]))
-    except ValueError as e:
-        click.echo(f"Error: Invalid size format: {e}", err=True)
-        sys.exit(1)
+    size_chunks = _parse_size(size)
 
     # Create world
-    try:
-        click.echo(f"Creating void world at {world_path}...")
-        create_void_world(
-            world_path,
-            size_chunks=size_chunks,
-            spawn_platform=spawn_platform,
-            name=name,
-        )
-        blocks_x = size_chunks[0] * 16
-        blocks_z = size_chunks[1] * 16
-        click.echo(f"✓ Void world created successfully ({blocks_x}x{blocks_z} blocks)")
-    except MCCommandError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
-        sys.exit(1)
+    click.echo(f"Creating void world at {world_path}...")
+    create_void_world(
+        world_path,
+        size_chunks=size_chunks,
+        spawn_platform=spawn_platform,
+        name=name,
+    )
+    blocks_x = size_chunks[0] * 16
+    blocks_z = size_chunks[1] * 16
+    click.echo(f"✓ Void world created successfully ({blocks_x}x{blocks_z} blocks)")
 
 
 @main.command()
 @click.argument("script_file", type=click.Path(exists=True))
+@cli_error_handler
 def analyze(script_file: str) -> None:
     """Analyze a build script to determine structure extents.
 
@@ -297,37 +306,29 @@ def analyze(script_file: str) -> None:
 
     script_path = Path(script_file)
 
-    try:
-        converter = ScriptConverter()
-        click.echo(f"Analyzing {script_path}...")
-        click.echo()
+    converter = ScriptConverter()
+    click.echo(f"Analyzing {script_path}...")
+    click.echo()
 
-        bbox = converter.analyze_script(script_path)
+    bbox = converter.analyze_script(script_path)
 
-        click.echo("Structure Analysis:")
-        click.echo(f"  {bbox}")
-        click.echo()
-        click.echo("Base-to-base placement calculations:")
-        click.echo(f"  Structure 1 origin: (0, {bbox.min_y}, 0)")
-        click.echo(
-            f"  Structure 2 origin (10 blocks east): ({bbox.width + 10}, {bbox.min_y}, 0)"
-        )
-        click.echo(
-            f"  Structure 3 origin (10 blocks north): (0, {bbox.min_y}, {bbox.depth + 10})"
-        )
-        click.echo()
-        click.echo("Tip: Use these calculations with --origin flag:")
-        click.echo(f"  mccommand batch world {script_path.name} --origin 0,{bbox.min_y},0")
-        click.echo(
-            f"  mccommand batch world {script_path.name} --origin {bbox.width + 10},{bbox.min_y},0"
-        )
-
-    except MCCommandError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
-        sys.exit(1)
+    click.echo("Structure Analysis:")
+    click.echo(f"  {bbox}")
+    click.echo()
+    click.echo("Base-to-base placement calculations:")
+    click.echo(f"  Structure 1 origin: (0, {bbox.min_y}, 0)")
+    click.echo(
+        f"  Structure 2 origin (10 blocks east): ({bbox.width + 10}, {bbox.min_y}, 0)"
+    )
+    click.echo(
+        f"  Structure 3 origin (10 blocks north): (0, {bbox.min_y}, {bbox.depth + 10})"
+    )
+    click.echo()
+    click.echo("Tip: Use these calculations with --origin flag:")
+    click.echo(f"  mccommand batch world {script_path.name} --origin 0,{bbox.min_y},0")
+    click.echo(
+        f"  mccommand batch world {script_path.name} --origin {bbox.width + 10},{bbox.min_y},0"
+    )
 
 
 @main.command()
@@ -342,6 +343,7 @@ def analyze(script_file: str) -> None:
     is_flag=True,
     help="Don't auto-detect base point, use 0,0,0 instead",
 )
+@cli_error_handler
 def convert_to_relative(
     input_file: str, output: str | None, base: str | None, no_auto_detect: bool
 ) -> None:
@@ -374,46 +376,31 @@ def convert_to_relative(
         suffix = input_path.suffix
         output_path = input_path.parent / f"{stem}_relative{suffix}"
 
-    # Parse base point if provided
+    # Parse base point if provided (similar to origin but called "base")
     base_point = None
     if base:
-        try:
-            parts = base.split(",")
-            if len(parts) != 3:
-                raise ValueError("Base must be x,y,z")
-            base_point = (int(parts[0]), int(parts[1]), int(parts[2]))
-        except ValueError as e:
-            click.echo(f"Error: Invalid base format: {e}", err=True)
-            sys.exit(1)
+        base_point = _parse_origin(base)  # Reuse origin parser for base
 
     # Convert script
-    try:
-        converter = ScriptConverter()
-        click.echo(f"Converting {input_path} to relative coordinates...")
+    converter = ScriptConverter()
+    click.echo(f"Converting {input_path} to relative coordinates...")
 
-        detected_base, bbox = converter.convert_file(
-            input_path,
-            output_path,
-            base_point=base_point,
-            auto_detect=not no_auto_detect,
-        )
+    detected_base, bbox = converter.convert_file(
+        input_path,
+        output_path,
+        base_point=base_point,
+        auto_detect=not no_auto_detect,
+    )
 
-        click.echo(f"✓ Converted successfully")
-        click.echo(f"  Base point: {detected_base[0]}, {detected_base[1]}, {detected_base[2]}")
-        click.echo(f"  {bbox}")
-        click.echo(f"  Output: {output_path}")
-        click.echo(f"\nFor base-to-base placement:")
-        click.echo(f"  Structure 1: --origin {detected_base[0]},{detected_base[1]},{detected_base[2]}")
-        click.echo(
-            f"  Structure 2 (10 blocks east): --origin {detected_base[0] + bbox.width + 10},{detected_base[1]},{detected_base[2]}"
-        )
-
-    except MCCommandError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
-        sys.exit(1)
+    click.echo("✓ Converted successfully")
+    click.echo(f"  Base point: {detected_base[0]}, {detected_base[1]}, {detected_base[2]}")
+    click.echo(f"  {bbox}")
+    click.echo(f"  Output: {output_path}")
+    click.echo("\nFor base-to-base placement:")
+    click.echo(f"  Structure 1: --origin {detected_base[0]},{detected_base[1]},{detected_base[2]}")
+    click.echo(
+        f"  Structure 2 (10 blocks east): --origin {detected_base[0] + bbox.width + 10},{detected_base[1]},{detected_base[2]}"
+    )
 
 
 if __name__ == "__main__":

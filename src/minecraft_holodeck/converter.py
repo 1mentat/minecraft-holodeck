@@ -2,10 +2,71 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TextIO
+from typing import Iterator, TextIO
 
 from minecraft_holodeck.parser import CommandParser, FillCommand, SetblockCommand
 from minecraft_holodeck.parser.ast import Coordinate, Position
+
+
+def _extract_positions_from_command(
+    ast: SetblockCommand | FillCommand,
+) -> Iterator[Position]:
+    """Extract all positions from a parsed command.
+
+    Args:
+        ast: Parsed command (SetblockCommand or FillCommand)
+
+    Yields:
+        Position objects from the command
+    """
+    if isinstance(ast, SetblockCommand):
+        yield ast.position
+    elif isinstance(ast, FillCommand):
+        yield ast.pos1
+        yield ast.pos2
+
+
+def _compute_coordinate_bounds(
+    commands: Iterator[tuple[SetblockCommand | FillCommand | None, ...]],
+) -> tuple[
+    tuple[float, float, float],  # min_x, min_y, min_z
+    tuple[float, float, float],  # max_x, max_y, max_z
+]:
+    """Compute coordinate bounds from a sequence of commands.
+
+    Args:
+        commands: Iterator of tuples containing command ASTs (can include None values)
+
+    Returns:
+        Tuple of (min_coords, max_coords) where each is (x, y, z)
+        Uses float('inf') and float('-inf') if no coordinates found
+    """
+    min_x = float("inf")
+    min_y = float("inf")
+    min_z = float("inf")
+    max_x = float("-inf")
+    max_y = float("-inf")
+    max_z = float("-inf")
+
+    for item in commands:
+        # Handle both tuple format (from convert_file) and direct AST
+        ast = item[-1] if isinstance(item, tuple) else item
+        if ast is None:
+            continue
+
+        for pos in _extract_positions_from_command(ast):
+            # Only consider absolute coordinates
+            if not pos.x.relative:
+                min_x = min(min_x, pos.x.value)
+                max_x = max(max_x, pos.x.value)
+            if not pos.y.relative:
+                min_y = min(min_y, pos.y.value)
+                max_y = max(max_y, pos.y.value)
+            if not pos.z.relative:
+                min_z = min(min_z, pos.z.value)
+                max_z = max(max_z, pos.z.value)
+
+    return (min_x, min_y, min_z), (max_x, max_y, max_z)
 
 
 @dataclass
@@ -59,44 +120,23 @@ class ScriptConverter:
         """
         script_path = Path(script_path)
 
-        min_x = float("inf")
-        min_y = float("inf")
-        min_z = float("inf")
-        max_x = float("-inf")
-        max_y = float("-inf")
-        max_z = float("-inf")
-
-        with open(script_path) as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-
-                try:
-                    ast = self.parser.parse(line)
-
-                    if isinstance(ast, SetblockCommand):
-                        positions = [ast.position]
-                    elif isinstance(ast, FillCommand):
-                        positions = [ast.pos1, ast.pos2]
-                    else:
+        # Parse all commands from file
+        def _parse_commands():
+            with open(script_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    try:
+                        yield (self.parser.parse(line),)
+                    except Exception:
+                        # Skip unparseable lines
                         continue
 
-                    for pos in positions:
-                        # Only consider absolute coordinates
-                        if not pos.x.relative:
-                            min_x = min(min_x, pos.x.value)
-                            max_x = max(max_x, pos.x.value)
-                        if not pos.y.relative:
-                            min_y = min(min_y, pos.y.value)
-                            max_y = max(max_y, pos.y.value)
-                        if not pos.z.relative:
-                            min_z = min(min_z, pos.z.value)
-                            max_z = max(max_z, pos.z.value)
-
-                except Exception:
-                    # Skip unparseable lines
-                    continue
+        # Compute bounds using shared helper
+        (min_x, min_y, min_z), (max_x, max_y, max_z) = _compute_coordinate_bounds(
+            _parse_commands()
+        )
 
         # If no coordinates found, return default
         if min_x == float("inf"):
@@ -198,29 +238,8 @@ class ScriptConverter:
         Returns:
             Base point (min_x, min_y, min_z)
         """
-        min_x = float("inf")
-        min_y = float("inf")
-        min_z = float("inf")
-
-        for _, _, ast in commands:
-            if ast is None:
-                continue
-
-            if isinstance(ast, SetblockCommand):
-                positions = [ast.position]
-            elif isinstance(ast, FillCommand):
-                positions = [ast.pos1, ast.pos2]
-            else:
-                continue
-
-            for pos in positions:
-                # Only consider absolute coordinates
-                if not pos.x.relative:
-                    min_x = min(min_x, pos.x.value)
-                if not pos.y.relative:
-                    min_y = min(min_y, pos.y.value)
-                if not pos.z.relative:
-                    min_z = min(min_z, pos.z.value)
+        # Use shared helper to compute bounds (only need min values)
+        (min_x, min_y, min_z), _ = _compute_coordinate_bounds(iter(commands))
 
         # If no coordinates found, use origin
         if min_x == float("inf"):
