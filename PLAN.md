@@ -1782,7 +1782,7 @@ The parser module defines its own local version instead of using the canonical o
 
 ---
 
-### Refactor 2: Extract CLI Parsing Helpers (Medium Priority)
+### Refactor 2: Extract CLI Parsing Helpers (Medium Priority) ✅ COMPLETE
 
 **Problem**: Duplicated parsing logic in CLI commands:
 
@@ -1796,17 +1796,17 @@ The parser module defines its own local version instead of using the canonical o
 - `cli.py:254-262` (`create_void` command)
 
 **Solution**:
-1. Create helper function `_parse_origin(origin: str) -> tuple[int, int, int]`
-2. Create helper function `_parse_size(size: str) -> tuple[int, int]`
-3. Replace duplicated code with calls to these helpers
-4. Add proper error messages to helpers
+1. ✅ Create helper function `_parse_origin(origin: str) -> tuple[int, int, int]`
+2. ✅ Create helper function `_parse_size(size: str) -> tuple[int, int]`
+3. ✅ Replace duplicated code with calls to these helpers
+4. ✅ Add proper error messages to helpers
 
-**Files to modify**:
+**Files modified**:
 - `src/minecraft_holodeck/cli.py`
 
 ---
 
-### Refactor 3: Extract CLI Error Handling Decorator (Medium Priority)
+### Refactor 3: Extract CLI Error Handling Decorator (Medium Priority) ✅ COMPLETE
 
 **Problem**: Every CLI command has the same try/except pattern:
 ```python
@@ -1823,17 +1823,17 @@ except Exception as e:
 This appears in 6 commands: `execute`, `batch`, `create_flat`, `create_void`, `analyze`, `convert_to_relative`.
 
 **Solution**:
-1. Create a decorator `@cli_error_handler` that wraps functions
-2. The decorator should catch `MCCommandError` and general `Exception`
-3. Apply decorator to all CLI commands
-4. Remove duplicated try/except blocks
+1. ✅ Create a decorator `@cli_error_handler` that wraps functions
+2. ✅ The decorator catches `MCCommandError` and general `Exception`
+3. ✅ Apply decorator to all CLI commands
+4. ✅ Remove duplicated try/except blocks
 
-**Files to modify**:
+**Files modified**:
 - `src/minecraft_holodeck/cli.py`
 
 ---
 
-### Refactor 4: Consolidate Position Extraction in ScriptConverter (Medium Priority)
+### Refactor 4: Consolidate Position Extraction in ScriptConverter (Medium Priority) ✅ COMPLETE
 
 **Problem**: `converter.py` has nearly identical logic in two methods:
 - `analyze_script` (lines 78-99): Extracts positions to calculate bounding box
@@ -1842,17 +1842,17 @@ This appears in 6 commands: `execute`, `batch`, `create_flat`, `create_void`, `a
 Both iterate over commands, extract positions from `SetblockCommand`/`FillCommand`, and calculate min/max values.
 
 **Solution**:
-1. Extract a shared private method `_extract_positions(commands) -> Iterator[Position]`
-2. Or create `_get_coordinate_bounds(commands) -> tuple[min_coords, max_coords]`
-3. Refactor both `analyze_script` and `_detect_base_point` to use the shared method
-4. Update tests to verify behavior unchanged
+1. ✅ Create shared helper `_extract_positions_from_command(ast) -> Iterator[Position]`
+2. ✅ Create `_compute_coordinate_bounds(commands) -> tuple[min_coords, max_coords]`
+3. ✅ Refactor both `analyze_script` and `_detect_base_point` to use the shared method
+4. ✅ Tests verify behavior unchanged
 
-**Files to modify**:
+**Files modified**:
 - `src/minecraft_holodeck/converter.py`
 
 ---
 
-### Refactor 5: Extract World Creation Setup Helper (Medium Priority)
+### Refactor 5: Extract World Creation Setup Helper (Medium Priority) ✅ COMPLETE
 
 **Problem**: `creation.py` has nearly identical boilerplate in both functions:
 - `create_flat_world` (lines 66-101)
@@ -1864,16 +1864,17 @@ Both set the same NBT tags:
 - `SpawnX`, `SpawnY`, `SpawnZ`
 
 **Solution**:
-1. Create helper function `_create_base_world(path, name, size_chunks, spawn_y) -> AnvilFormat`
-2. This function handles:
+1. ✅ Create context manager `_create_base_world(path, name, spawn_x, spawn_y, spawn_z)`
+2. ✅ This function handles:
    - Creating world directory
    - Creating AnvilFormat wrapper
    - Setting all common NBT tags
-   - Calculating and setting spawn point
-3. Refactor `create_flat_world` and `create_void_world` to call the helper
-4. Each function then only handles its specific logic (layers vs spawn platform)
+   - Setting spawn point
+   - Saving and closing world on exit
+3. ✅ Refactor `create_flat_world` and `create_void_world` to use the helper
+4. ✅ Each function then only handles its specific logic (layers vs spawn platform)
 
-**Files to modify**:
+**Files modified**:
 - `src/minecraft_holodeck/world/creation.py`
 
 ---
@@ -1999,10 +2000,10 @@ return BoundingBox(
 | # | Refactor | Priority | Estimated Impact | Files | Status |
 |---|----------|----------|------------------|-------|--------|
 | 1 | Remove duplicate `CommandSyntaxError` | High | Bug prevention | 2 files | ✅ Done |
-| 2 | CLI parsing helpers | Medium | ~30 lines saved | 1 file | |
-| 3 | CLI error handling decorator | Medium | ~60 lines saved | 1 file | |
-| 4 | Position extraction consolidation | Medium | ~30 lines saved | 1 file | |
-| 5 | World creation setup helper | Medium | ~40 lines saved | 1 file | |
+| 2 | CLI parsing helpers | Medium | ~30 lines saved | 1 file | ✅ Done |
+| 3 | CLI error handling decorator | Medium | ~60 lines saved | 1 file | ✅ Done |
+| 4 | Position extraction consolidation | Medium | ~30 lines saved | 1 file | ✅ Done |
+| 5 | World creation setup helper | Medium | ~40 lines saved | 1 file | ✅ Done |
 | 6 | Platform/version constants | Low | Maintainability | 2-3 files | |
 | 7 | Standardize imports | Low | Code style | 2 files | |
 | 8 | Missing type annotation | Low | Type safety | 1 file | |
