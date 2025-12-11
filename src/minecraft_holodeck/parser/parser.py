@@ -4,13 +4,9 @@ from pathlib import Path
 
 from lark import Lark, LarkError
 
+from minecraft_holodeck.exceptions import CommandSyntaxError
 from minecraft_holodeck.parser.ast import CommandAST, FillCommand, SetblockCommand
 from minecraft_holodeck.parser.transformer import ASTTransformer
-
-
-class CommandSyntaxError(Exception):
-    """Raised when command syntax is invalid."""
-    pass
 
 
 class CommandParser:
