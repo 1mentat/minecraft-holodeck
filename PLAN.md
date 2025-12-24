@@ -65,33 +65,34 @@ A Python library for modifying Minecraft Java Edition world files through `/setb
 
 ---
 
-## Phase 5: Smart Placement (PLANNED)
+## Phase 5: Smart Placement (COMPLETE)
 
 **Goal**: Enable intelligent structure placement with automatic spacing calculation.
 
 **Problem**: Current implementation places structures origin-to-origin. Need base-to-base placement for proper spacing.
 
-### Planned Components
+### Implemented Components
 
 1. **StructurePlacer Class**
    ```python
-   placer = StructurePlacer()
-   placer.place_adjacent(world, "cabin.txt",
-                         relative_to=(0, 64, 0),
-                         direction="east",
-                         gap=10)  # Accounts for structure width
+   with StructurePlacer("/path/to/world") as placer:
+       placer.place_adjacent("cabin.txt",
+                             relative_to=(0, 64, 0),
+                             direction="east",
+                             gap=10)  # Accounts for structure width
    ```
 
 2. **Grid Placement**
    ```python
-   placer.place_grid(world, "cabin.txt",
+   placer.place_grid("cabin.txt",
+                     start=(0, 64, 0),
                      grid_size=(3, 3),
                      spacing=(5, 5))
    ```
 
 3. **Anchor Points**
    ```python
-   placer.place_at(world, "tower.txt",
+   placer.place_at("tower.txt",
                    position=(0, 64, 0),
                    anchor="center")  # or "corner", "base-center"
    ```
@@ -99,16 +100,23 @@ A Python library for modifying Minecraft Java Edition world files through `/setb
 4. **Extent Queries**
    ```python
    analyzer = StructureAnalyzer()
-   width = analyzer.get_width_at_y(script, y=64)
+   bbox = analyzer.get_bounding_box(script)
    footprint = analyzer.get_base_footprint(script)
+   width = analyzer.get_width_at_y(script, y=64)
+   slice_info = analyzer.get_slice_at_y(script, y=64)
    ```
 
+### CLI Commands
+- `mccommand place` - Place structure with anchor support
+- `mccommand place-adjacent` - Place adjacent with gap calculation
+- `mccommand place-grid` - Place in grid pattern
+
 ### Tasks
-- ⏳ Implement StructurePlacer class
-- ⏳ Add place_adjacent() method
-- ⏳ Add place_grid() method
-- ⏳ Support anchor points
-- ⏳ Add extent query methods
+- ✅ Implement StructurePlacer class
+- ✅ Add place_adjacent() method
+- ✅ Add place_grid() method
+- ✅ Support anchor points (corner, center, base-center)
+- ✅ Add extent query methods (StructureAnalyzer)
 
 ---
 

@@ -405,5 +405,134 @@ def convert_to_relative(
     )
 
 
+@main.command()
+@click.argument("world_path", type=click.Path(exists=True))
+@click.argument("script_file", type=click.Path(exists=True))
+@click.option("--position", "-p", required=True, help="Position (x,y,z)")
+@click.option(
+    "--anchor",
+    type=click.Choice(["corner", "center", "base-center"]),
+    default="corner",
+    help="Anchor point for placement",
+)
+@cli_error_handler
+def place(
+    world_path: str, script_file: str, position: str, anchor: str
+) -> None:
+    """Place a structure at a position with anchor support.
+
+    Examples:
+
+        # Place at corner (default)
+        mccommand place ./world cabin.txt --position 0,64,0
+
+        # Place centered at position
+        mccommand place ./world cabin.txt --position 0,64,0 --anchor center
+
+        # Place with base centered at position
+        mccommand place ./world cabin.txt --position 0,64,0 --anchor base-center
+    """
+    from minecraft_holodeck.placer import StructurePlacer
+
+    pos = _parse_origin(position)
+
+    with StructurePlacer(world_path) as placer:
+        result = placer.place_at(script_file, pos, anchor=anchor)
+        click.echo(f"✓ Placed {result.blocks_placed} blocks")
+        click.echo(f"  Origin used: {result.origin_used}")
+        click.echo(f"  Bounding box: {result.bounding_box.width}x{result.bounding_box.height}x{result.bounding_box.depth}")
+
+
+@main.command()
+@click.argument("world_path", type=click.Path(exists=True))
+@click.argument("script_file", type=click.Path(exists=True))
+@click.option("--relative-to", "-r", required=True, help="Reference position (x,y,z)")
+@click.option(
+    "--direction",
+    "-d",
+    type=click.Choice(["north", "south", "east", "west", "up", "down"]),
+    required=True,
+    help="Direction to place",
+)
+@click.option("--gap", "-g", default=0, type=int, help="Gap between structures")
+@click.option("--reference", help="Reference structure script (for offset calculation)")
+@cli_error_handler
+def place_adjacent(
+    world_path: str,
+    script_file: str,
+    relative_to: str,
+    direction: str,
+    gap: int,
+    reference: str | None,
+) -> None:
+    """Place a structure adjacent to a reference position.
+
+    Calculates placement based on actual structure dimensions for
+    proper base-to-base spacing.
+
+    Examples:
+
+        # Place 10 blocks east of origin
+        mccommand place-adjacent ./world cabin.txt -r 0,64,0 -d east -g 10
+
+        # Place adjacent to existing structure
+        mccommand place-adjacent ./world cabin.txt -r 0,64,0 -d east -g 5 --reference cabin.txt
+    """
+    from minecraft_holodeck.placer import StructurePlacer
+
+    ref_pos = _parse_origin(relative_to)
+
+    with StructurePlacer(world_path) as placer:
+        result = placer.place_adjacent(
+            script_file,
+            relative_to=ref_pos,
+            direction=direction,
+            gap=gap,
+            reference_script=reference,
+        )
+        click.echo(f"✓ Placed {result.blocks_placed} blocks")
+        click.echo(f"  Origin used: {result.origin_used}")
+        click.echo(f"  Direction: {direction}, Gap: {gap}")
+
+
+@main.command()
+@click.argument("world_path", type=click.Path(exists=True))
+@click.argument("script_file", type=click.Path(exists=True))
+@click.option("--start", "-s", required=True, help="Start position (x,y,z)")
+@click.option("--grid", "-g", required=True, help="Grid size (cols,rows)")
+@click.option("--spacing", default="5,5", help="Spacing between structures (x,z)")
+@cli_error_handler
+def place_grid(
+    world_path: str, script_file: str, start: str, grid: str, spacing: str
+) -> None:
+    """Place structures in a grid pattern.
+
+    Examples:
+
+        # Place 3x3 grid of cabins
+        mccommand place-grid ./world cabin.txt -s 0,64,0 -g 3,3
+
+        # Place with custom spacing
+        mccommand place-grid ./world cabin.txt -s 0,64,0 -g 2,4 --spacing 10,10
+    """
+    from minecraft_holodeck.placer import StructurePlacer
+
+    start_pos = _parse_origin(start)
+    grid_size = _parse_size(grid)
+    spacing_tuple = _parse_size(spacing)
+
+    with StructurePlacer(world_path) as placer:
+        results = placer.place_grid(
+            script_file,
+            start=start_pos,
+            grid_size=grid_size,
+            spacing=spacing_tuple,
+        )
+        total_blocks = sum(r.blocks_placed for r in results)
+        click.echo(f"✓ Placed {len(results)} structures ({total_blocks} blocks)")
+        click.echo(f"  Grid: {grid_size[0]}x{grid_size[1]}")
+        click.echo(f"  Spacing: {spacing_tuple[0]}x{spacing_tuple[1]}")
+
+
 if __name__ == "__main__":
     main()

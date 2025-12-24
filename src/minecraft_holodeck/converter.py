@@ -139,7 +139,7 @@ class BoundingBox:
 class ScriptConverter:
     """Convert absolute coordinate build scripts to relative coordinates."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.parser = CommandParser()
 
     def analyze_script(self, script_path: Path | str) -> BoundingBox:
